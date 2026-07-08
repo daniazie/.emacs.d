@@ -1,8 +1,10 @@
-#+STARTUP: overview
+#+STARTUP: overview inlineimages
 #+title: dania moriazi's emacs config
 #+creator: dania moriazi
 #+language: en
 #+OPTIONS: num:nil
+
+[[img/screenshot.png]]
 
 * Basics
 Toggling away...
