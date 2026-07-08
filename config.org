@@ -1,0 +1,618 @@
+#+STARTUP: overview
+#+title: dania moriazi's emacs config
+#+creator: dania moriazi
+#+language: en
+#+OPTIONS: num:nil
+
+* Basics
+Toggling away...
+** Aesthetics
+*** Welcome screen begone
+#+BEGIN_SRC emacs-lisp
+(setq inhibit-startup-message t)
+#+END_SRC
+*** Remove toolbar, menubar and scrollbar
+#+BEGIN_SRC emacs-lisp
+(scroll-bar-mode -1)
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+#+END_SRC
+*** Show line numbers
+#+BEGIN_SRC emacs-lisp
+(global-display-line-numbers-mode t)
+#+END_SRC
+*** Text wrapping
+#+begin_src emacs-lisp
+  (global-visual-line-mode t)
+#+end_src
+*** Display matching delimiters
+#+begin_src emacs-lisp
+  (show-paren-mode 1)
+#+end_src
+*** Display window numbers
+#+begin_src emacs-lisp
+  (winum-mode 1)
+#+end_src
+*** Show emojis
+#+begin_src emacs-lisp
+  (emojify-mode 1)
+#+end_src
+*** Disable dialogue boxes
+#+begin_src emacs-lisp
+  (setq use-file-dialog nil)
+  (setq use-dialog-box nil)
+#+end_src
+*** Full screen
+#+begin_src emacs-lisp
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+#+end_src
+*** Ensure org files are folded on startup
+#+begin_src emacs-lisp
+  (setq org-startup-folded t)
+#+end_src
+*** Turn that bell off
+#+begin_src emacs-lisp
+  (setq ring-bell-function 'ignore)
+#+end_src
+** Functionality
+*** Enable which-key
+#+begin_src emacs-lisp
+  (which-key-mode)
+#+end_src
+*** Enable delete selection
+#+begin_src emacs-lisp
+  (delete-selection-mode)
+#+end_src
+*** On completions
+#+begin_src emacs-lisp
+  (vertico-mode)
+  (add-hook 'after-init-hook 'global-company-mode)
+#+end_src
+*** Autocomplete matching delimiters
+#+begin_src emacs-lisp
+  (electric-pair-mode t)
+#+end_src
+* On Startup
+** Setting up the windows
+*** Open =inbox.org= on startup
+#+begin_src emacs-lisp
+  (defun my/open-org-inbox ()
+    (interactive)
+    (set-buffer
+     (get-buffer (find-file (concat org-directory "inbox.org"))))
+    (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
+  	 (pos (org-find-exact-headline-in-buffer timestamp)))
+      (unless pos
+        (progn (goto-char (buffer-size))
+  	     (org-insert-heading nil nil t)
+  	     (insert timestamp)
+  	     (save-buffer)))
+      (goto-char (buffer-size)))
+    (current-buffer))
+#+end_src
+*** Also =org-agenda=
+There is most definitely a better way to enable org-agenda but I can't be bothered hence ✨macro✨
+#+begin_src emacs-lisp
+  (defun my/open-org-agenda ()
+    (interactive)
+    (split-window-right)
+    (execute-kbd-macro (kbd "C-c a n"))
+    (current-buffer))
+#+end_src
+*** ... And the backlog that is my reading list
+#+begin_src emacs-lisp
+  (defun my/window-setup ()
+    (interactive)
+    (let ((win1 (winum-get-window-by-number 1))
+  	(win2 (winum-get-window-by-number 2)))
+      (select-window win1)
+      (split-window-below)
+      (window-swap-states)
+      (window-swap-states)
+      (get-buffer (find-file (concat org-directory "papers.org"))))
+    (select-window (winum-get-window-by-number 1)))
+#+end_src
+*** Putting it all together
+#+begin_src emacs-lisp
+  (setq initial-buffer-choice
+        (lambda ()
+  	(my/open-org-inbox)
+  	(my/open-org-agenda)
+  	(my/window-setup)))
+#+end_src
+** Multilinguality
+*** Enable 한글
+There is technically a default key binding for this but I like to keep it uniform with my system setting.
+#+begin_src emacs-lisp
+  (defun my/toggle-input-method ()
+    (interactive)
+    (toggle-input-method))
+
+  (keymap-global-set "s-SPC" #'my/toggle-input-method)
+#+end_src
+*** Initialise input method
+So that I don't have to manually initialise it every time
+#+begin_src emacs-lisp
+  (defun my/initialise-input-method ()
+    (interactive)
+    (set-input-method 'korean-hangul)
+    (toggle-input-method))
+
+  (my/initialise-input-method)
+#+end_src
+* For Convenience
+** Key bindings
+*** Shortcut to =config.org=
+#+begin_src emacs-lisp
+  (defun my/open-config-file ()
+    (interactive)
+    (get-buffer-create (find-file "~/.emacs.d/config.org")))
+
+  (keymap-global-set "C-c f p" #'my/open-config-file)
+#+end_src
+*** Scratchpadding
+#+begin_src emacs-lisp
+  (keymap-global-set "C-c f s" #'scratch-buffer)
+#+end_src
+* Org Mode
+Honestly better than markdown tbh
+** Basics
+*** Loading =org-capture= and =org-protocol=
+#+begin_src emacs-lisp
+  (require 'org-capture)
+  (require 'org-protocol)
+#+end_src
+*** Set up key bindings
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-c l") #'org-store-link)
+  (global-set-key (kbd "C-c a") #'org-agenda)
+  (global-set-key (kbd "C-c c") #'org-capture)
+#+end_src
+** Making org-mode look pretty
+*** Indentation
+#+begin_src emacs-lisp
+  (setq org-startup-indented t)
+#+end_src
+*** Bullets for headings
+#+begin_src emacs-lisp
+  (require 'org-bullets)
+  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+#+end_src
+*** Hide emphasis markers
+#+begin_src emacs-lisp
+  (setq org-hide-emphasis-markers t)
+#+end_src
+** Functionality
+*** =M-RET=-may-not-split-line
+This drove me mad the first time I used org-mode
+#+begin_src emacs-lisp
+  (setq org-M-RET-may-split-line '((item . nil)))
+#+end_src
+*** Enabling =shift-select=
+#+begin_src emacs-lisp
+  (setq org-support-shift-select t)
+#+end_src
+*** Set =org-refile= variables
+#+begin_src emacs-lisp
+  (setq org-refile-allow-creating-parent-nodes 'confirm)
+  (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+#+end_src
+*** Enable =RET= to open links
+#+begin_src emacs-lisp
+  (setq org-return-follows-link t)
+#+end_src
+** Templates
+*** Saving bibtex citations
+#+begin_src emacs-lisp
+  (defun my/save-to-ref-bib (result)
+    (save-window-excursion
+      (find-file (concat org-directory "references.bib"))
+      (goto-char (point-max))
+      (let* ((citebib (plist-get result :citebib))
+  	     (title (plist-get result :title))
+  	     (fname (plist-get result :fname))
+  	     (abstract (plist-get result :abstract))
+  	     (url (plist-get result :url))
+  	     (download_path (concat "~/Downloads/" fname))
+  	     (save_path (concat "~/Documents/papers/" fname)))
+  	(unless (bibtex-search-entry title)
+  	  (goto-char (point-max))
+  	  (insert citebib)
+  	  (shell-command (concat "mv " download_path " " save_path))
+  	  (bibtex-set-field "abstract" abstract)
+  	  (bibtex-set-field "file" save_path))
+  	(save-buffer))))
+#+end_src
+*** Protocol capture to reading list
+#+begin_src emacs-lisp
+  (defun archive-paper (result)
+    (message "archive-paper called with: %S" result)
+    (save-to-ref-bib result)
+    (save-window-excursion
+      (find-file (concat org-directory "paper-listup.org"))
+      (goto-char (point-max))
+      (let* ((url (plist-get result :url))
+  	     (title (plist-get result :title))
+  	     (abstract (plist-get result :abstract))
+  	     (code-url (plist-get result :code_url)))
+  	     (insert (concat "** TOREAD " title " [[" url  "][[link]]]\n"))
+  	     (when code-url (insert (concat " - Code: " code-url)))
+  	     (insert (concat "\n*** Abstract\n" abstract "\n")))
+      (save-buffer))
+    nil)
+#+end_src
+*** Capture templates
+#+begin_src emacs-lisp
+  (setq org-capture-templates
+        '(("m" "meeting" entry (file "meeting.org")
+  	 "* %t \n ** Discussion %? \n** Tasks \n")
+  	("i" "inbox" entry (file "inbox.org")
+  	 "* %u \n ** %?")
+  	("p" "capture" entry (file "capture-inbox.org")
+  	 "* %:annotation %u\n %i\n%?")
+  	("r" "weekly-report" entry (file "weekly-report.org")
+  	 "* %^{PROMPT}u \n ** 이번 주에 한 일 \n %? \n ** 다음 주에 할 일 \n** 도움이 필요하거나 공유할 사항 \n")))
+#+end_src
+*** Custom protocols
+#+begin_src emacs-lisp
+  (setq org-protocol-protocol-alist
+        '(("archive papers"
+  	 :protocol "archive-papers"
+  	 :function archive-paper)
+  	("save refs"
+  	 :protocol "save-to-ref-bib"
+  	 :function save-to-ref-bib)))
+#+end_src
+** Custom org-links
+*** Save Github repo links
+#+begin_src emacs-lisp
+  (defun gh-open (repo _)
+    (browse-url (gh-expand-link repo)))
+
+  (defun gh-expand-link (repo)
+    (format "https://github.com/%s" repo))
+
+  (defun gh-export (link description backend info)
+    (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+        (let ((link (org-element-create
+  		   'link (list :type "https"
+  			       :path (gh-expand-link repo)))))
+  	(funcall transcode-link link desc info))
+      (concat "gh:" link)))
+
+  (defun gh-description (repo &optional description)
+    (or description repo))
+
+  (defun gh-store-link (repo &optional description)
+    (org-link-store-props
+     :type "gh"
+     :link (gh-expand-link repo)
+     :description description))
+
+  (org-link-set-parameters "gh"
+  			 :follow #'gh-open
+  			 :export #'gh-export
+  			 :insert-description #'gh-description
+  			 :store-link #'gh-store-link)
+#+end_src
+*** Save HF repo links
+#+begin_src emacs-lisp
+  (defun hf-open (repo &optional repo-type)
+    (interactive
+     (list (completing-read "Choose repo type: " '("model" "dataset"))))
+    (browse-url (hf-expand-link repo repo-type)))
+
+  (defun hf-expand-link (repo &optional repo-type)
+    (if (string= repo-type "dataset")
+        (format "https://huggingface.co/datasets/%s" repo)
+      (format "https://huggingface/co/%s" repo)))
+
+  (defun hf-export (link description backend info &optional repo-type)
+    (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+        (let ((link (org-element-create
+  		   'link (list :type "https"
+  			       :path (hf-expand-link repo repo-type)))))
+  	(funcall transcode-link link desc info))
+      (concat "hf:" link)))
+
+  (defun hf-description (repo &optional description)
+    (or description repo))
+
+  (defun hf-store-link (repo &optional description repo-type)
+    (org-link-store-props
+     :type "hf"
+     :link (hf-expand-link repo repo-type)
+     :description description))
+
+  (org-link-set-parameters "hf"
+  			 :follow #'hf-open
+  			 :export #'hf-export
+  			 :insert-description #'hf-description
+  			 :store-link #'hf-store-link)
+#+end_src
+* Bibliography Management with Elfeed
+Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_research_workflow/][blog post]] I used for this.
+** Prep
+*** Load =helm-bibtex= and =arxiv-mode=
+#+begin_src emacs-lisp
+  (require 'helm-bibtex)
+  (require 'arxiv-mode)
+#+end_src
+*** Load =elfeed-score=
+#+begin_src emacs-lisp
+  (use-package elfeed-score
+    :after elfeed
+    :config
+    (elfeed-score-load-score-file "~/.emacs.d/elfeed.score")
+    (elfeed-score-enable)
+    (define-key elfeed-search-mode-map "=" elfeed-score-map))
+#+end_src
+*** Set RSS feeds
+#+begin_src emacs-lisp
+  (setq elfeed-feeds '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
+#+end_src
+** Set up =elfeed-search=
+*** Format =elfeed-search= output
+#+begin_src emacs-lisp
+  (defun concatenate-authors (authors-list)
+    "Given AUTHORS-LIST, list of plists; return string of all authors concatenated."
+    (if (> (length authors-list) 1)
+        (format "%s et al." (plist-get (nth 0 authors-list) :name))
+      (plist-get (nth 0 authors-list) :name)))
+
+  (defun my-search-print-fn (entry)
+    "Print ENTRY to the buffer."
+    (let* ((date (elfeed-search-format-date (elfeed-entry-date entry)))
+  	 (title (or (elfeed-meta entry :title)
+  		    (elfeed-entry-title entry) ""))
+  	 (title-faces (elfeed-search--faces (elfeed-entry-tags entry)))
+  	 (entry-authors (concatenate-authors
+  			 (elfeed-meta entry :authors)))
+  	 (title-width (- (window-width) 10
+  			 elfeed-search-trailing-width))
+  	 (title-column (elfeed-format-column
+  			title 100
+  			:left))
+  	 (entry-score (elfeed-format-column (number-to-string (elfeed-score-scoring-get-score-from-entry entry)) 10 :left))
+            (authors-column (elfeed-format-column entry-authors 40 :left)))
+        (insert (propertize date 'face 'elfeed-search-date-face) " ")
+
+        (insert (propertize title-column
+                            'face title-faces 'kbd-help title) " ")
+        (insert (propertize authors-column
+                            'kbd-help entry-authors) " ")
+        (insert entry-score " ")))
+
+  (setq elfeed-search-print-entry-function #'my-search-print-fn)
+  (setq elfeed-search-date-format '("%y-%m-%d" 10 :left))
+  (setq elfeed-search-title-max-width 110)
+#+end_src
+*** Add search filter and update
+#+begin_src emacs-lisp
+  (setq elfeed-search-filter "@2-month-ago +unread")
+  (add-hook 'elfeed-search-mode-hook 'elfeed-update)
+#+end_src
+*** Fetch arXiv paper from elfeed entry and save to reading list
+#+begin_src emacs-lisp
+  (defun my/elfeed-entry-to-arxiv ()
+    (interactive)
+    (let* ((link (elfeed-entry-link elfeed-show-entry))
+  	 (match-idx (string-match "arxiv.org/abs/\\([0-9.]*\\)" link))
+           (matched-arxiv-number (match-string 1 link))
+           (last-arxiv-key "")
+           (last-arxiv-title ""))
+      (when matched-arxiv-number
+        (message "Going to arXiv: %s" matched-arxiv-number)
+        (arxiv-get-pdf-add-bibtex-entry matched-arxiv-number arxiv_bib arxiv_pdf_loc)
+        ;; Now, we are updating the most recent bib file with the pdf location
+        (message "Update bibtex with pdf file location")
+        (save-window-excursion
+                ;; Get the bib file
+                (find-file arxiv_bib)
+                ;; get to last line
+                (goto-char (point-max))
+                ;; get to the first line of bibtex
+                (bibtex-beginning-of-entry)
+                (let* ((entry (bibtex-parse-entry))
+                        (key (cdr (assoc "=key=" entry)))
+                        (title (bibtex-completion-apa-get-value "title" entry))
+                        (pdf (org-ref-get-pdf-filename key)))
+                        (message (concat "checking for key: " key))
+                        (message (concat "value of pdf: " pdf))
+                        (when (file-exists-p pdf)
+                        (bibtex-set-field "file" pdf)
+                        (setq last-arxiv-key key)
+                        (setq last-arxiv-title title)
+                        (save-buffer)
+                        )))
+        (save-window-excursion
+          (find-file (concat org-directory "papers.org"))
+          (goto-char (point-max))
+          (insert (format "** TODO Read paper (cite:%s) %s" last-arxiv-key last-arxiv-title))
+          (save-buffer))
+  	)))
+#+end_src
+*** Configure variables and key bindings
+#+begin_src emacs-lisp
+  (setq arxiv_bib "~/org/references.bib")
+  (setq arxiv_pdf_loc "~/Documents/papers/arxiv/")
+  (setq org-ref-pdf-directory arxiv_pdf_loc)
+
+  (setq bibtex-completion-library-path "~/Documents/papers/arxiv/")
+  (setq bibtex-completion-bibliography (list arxiv_bib))
+  (setq bibtex-completion-pdf-field "file")
+
+  (global-set-key (kbd "C-c n a") #'my/elfeed-entry-to-arxiv)
+  (global-set-key (kbd "C-c n e") #'elfeed)
+#+end_src
+* Engine-Mode
+To be honest, I've yet to actually use =engine-mode= but it's a nice-to-have I guess
+#+begin_src emacs-lisp
+  (use-package engine-mode
+    :ensure t
+    :config
+    (engine-mode t))
+#+end_src
+** Github
+#+begin_src emacs-lisp
+  (defengine github
+    "https://github.com/search?ref=simplesearch&q=%s")
+#+end_src
+** Google
+#+begin_src emacs-lisp
+  (defengine google
+    "https://www.google.com/search?ie=utf-8&oe=utf-8&q=%s"
+    :term-transformation-hook (lambda (term) (concat term " -ai"))
+    :keybinding "g")
+#+end_src
+
+** Google Scholar
+#+begin_src emacs-lisp
+  (defengine google-scholar
+    "https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=%s")
+#+end_src
+* Slack
+Now I can do nearly anything in emacs
+** Setting up
+*** Key bindings and authorisation
+#+begin_src emacs-lisp
+  (setq auth-sources '((:source "~/.authinfo")))
+
+  (use-package slack
+    :bind (("C-c S K" . slack-stop)
+  	 ("C-c S c" . slack-select-rooms)
+  	 ("C-c S u" . slack-select-unread-rooms)
+  	 ("C-c S U" . slack-user-select)
+  	 ("C-c S s" . slack-search-from-messages)
+  	 ("C-c S J" . slack-jump-to-browser)
+  	 ("C-c S j" . slack-jump-to-app)
+  	 ("C-c S e" . slack-insert-emoji)
+  	 ("C-c S E" . slack-message-edit)
+  	 ("C-c S r" . slack-message-add-reaction)
+  	 ("C-c S t" . slack-thread-show-or-create)
+  	 ("C-c S g" . slack-message-redisplay)
+  	 ("C-c S G" . slack-conversations-list-update-quick)
+  	 ("C-c S q" . slack-quote-and-reply)
+  	 ("C-c S Q" . slack-quote-and-reply-with-link)
+  	 (:map slack-mode-map
+  	       (("@" . slack-message-embed-mention)
+  		("#" . slack-message-embed-channel)))
+  	 (:map slack-thread-message-buffer-mode-map
+  	       (("C-c '" . slack-message-write-another-buffer)
+  		("@" . slack-message-embed-mention)
+  		("#" . slack-message-embed-channel)))
+  	 (:map slack-message-buffer-mode-map
+  	       (("C-c '" . slack-message-write-another-buffer)))
+  	 (:map slack-message-compose-buffer-mode-map
+  	       (("C-c '" . slack-message-send-from-buffer)))
+  	 )
+    :custom
+    (slack-extra-subscribed-channels (mapcar 'intern (list "ldi-main" "ldi-graduate" "clinical-note-generation" "ai-server" "help-me" "ml-share")))
+    :config
+    (slack-register-team
+     :name "languagedatakhu"
+     :token (auth-source-pick-first-password
+  	   :host "languagedatakhu.slack.com"
+  	   :user "dania.moriazi01@khu.ac.kr")
+     :cookie (auth-source-pick-first-password
+  	    :host "languagedatakhu.slack.com"
+  	    :user "dania.moriazi01@khu.ac.kr^cookie")
+     :full-and-display-names t
+     :default t
+     ))
+  (setq slack-prefer-current-team t)
+#+end_src
+*** Parse message metadata
+#+begin_src emacs-lisp
+  (defun slack/parse-message-loc (title)
+    (concat "#" (string-trim (nth 1 (split-string title "#")))))
+
+  (defun slack/parse-sender (message)
+    (string-trim (car (split-string message ":"))))
+
+  (defun slack/parse-message (info)
+    (let* ((title (plist-get info :title))
+  	 (message (plist-get info :message)))
+      (string-trim (nth 1 (split-string message ":")))))
+#+end_src
+*** Notifications
+Connecting Slack to org-agenda
+#+begin_src emacs-lisp
+  (require 'alert)
+
+  (alert-define-style
+   'my/slack-alert
+   :title "org slack alerts"
+   :notifier (lambda (info)
+    (when (get-buffer "slack.org")
+      (with-current-buffer "slack.org"
+        (save-buffer)))
+      (let* ((channel (slack/parse-message-loc (plist-get info :title)))
+  	   (user (slack/parse-sender (plist-get info :message)))
+  	   (message (slack/parse-message info))
+  	   (pos (org-find-exact-headline-in-buffer channel)))
+        (write-region
+         (s-concat
+  	"** UNREAD "
+  	(format "%s : %s"
+  		channel
+  		user)
+  	"\n"
+  	(format "%s" message)
+  	(format "<%s>"
+  		(format-time-string "%Y-%m-%d %HH:%M"))
+  	"\n")
+         nil
+         (concat org-directory "slack.org")
+         t))))
+  
+  (setq alert-default-style 'message)
+
+  (add-to-list 'alert-user-configuration
+  	     '(((:category . "slack")) my/slack-alert nil))
+
+  (add-hook 'org-agenda-mode-hook
+  	  (lambda () (local-set-key (kbd "M")
+  				    'my/org-agenda-todo-archive)))
+
+  (defun my/save-slack ()
+    (interactive)
+    (save-excursion
+      (do-list (buf '("slack.org_archive" "slack.org"))
+  	     (set-buffer buf)
+  	     (if (and (buffer-file-name) (buffer-modified-p))
+  		 (basic-save-buffer)))))
+
+  (defun my/org-agenda-todo-archive()
+    (interactive)
+    (org-agenda-todo 'done)
+    (org-agenda-archive)
+    (my/save-slack))
+#+end_src
+** Sending messages from emacs buffer
+*** Convert org-mode to mrkdwn
+After exporting org-mode to markdown using the built-in =org-export=, I pass the markdown output into a python script to then convert it into mrkdwn (slack-compatible markdown flavour)
+#+begin_src emacs-lisp
+  (defun my/org-to-slack-md ()
+    (interactive)
+    (goto-char (point))
+    (save-window-excursion
+      (get-buffer (org-md-export-as-markdown nil 'subtree))
+      (let* ((slack-md (buffer-string))
+  	   (pyscript (file-truename "~/.emacs.d/configs/convert-org-to-slack.py)")
+  	   (cmd (format "python %s --md %s"
+  			(shell-quote-argument pyscript)
+  			(shell-quote-argument slack-md))))
+        (print (shell-command-to-string cmd))))))
+#+end_src
+*** Sending the message
+#+begin_src emacs-lisp
+  (defun my/slack-send-message ()
+    (interactive)
+    (let ((slack-msg (my/org-to-slack-md)))
+      (save-window-excursion
+        (call-interactively #'slack-select-rooms)
+        (slack-if-let* ((buffer slack-current-buffer))
+  	  (slack-buffer-send-message buffer slack-msg))
+        (save-buffer))))
+#+end_src

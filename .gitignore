@@ -1,0 +1,16 @@
+session.*
+/config.el
+*#
+.#*
+*~
+auto-save-list
+games
+transient
+eln-cache
+elpa
+elfeed
+*.stats
+configs/config-*
+bookmarks
+tramp
+emojis
