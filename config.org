@@ -1,10 +1,8 @@
-#+STARTUP: overview inlineimages
-#+title: dania moriazi's emacs config
+#+STARTUP: overview
+#+title: emacs config
 #+creator: dania moriazi
 #+language: en
 #+OPTIONS: num:nil
-
-[[img/screenshot.png]]
 
 * Basics
 Toggling away...
@@ -76,20 +74,36 @@ Toggling away...
 #+end_src
 * On Startup
 ** Setting up the windows
-*** Open =inbox.org= on startup
+*** Open =inbox.org= and =daily.org= on startup
 #+begin_src emacs-lisp
+  (defun my/goto-or-create-timestamp-header ()
+    (interactive)    
+    (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
+  	 (pos (org-find-exact-headline-in-buffer timestamp)))
+      (if (not pos)
+        (progn (goto-char (buffer-size))
+  	     (org-insert-heading nil nil t)
+  	     (insert timestamp)
+  	     (goto-char (buffer-size))
+  	     (save-buffer)))
+  	(goto-char pos)
+  	(save-buffer)))
+
   (defun my/open-org-inbox ()
     (interactive)
     (set-buffer
      (get-buffer (find-file (concat org-directory "inbox.org"))))
-    (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
-  	 (pos (org-find-exact-headline-in-buffer timestamp)))
-      (unless pos
-        (progn (goto-char (buffer-size))
-  	     (org-insert-heading nil nil t)
-  	     (insert timestamp)
-  	     (save-buffer)))
-      (goto-char (buffer-size)))
+    (my/goto-or-create-timestamp-header)
+    (current-buffer))
+
+  (defun my/open-org-daily ()
+    (interactive)
+    (select-window (winum-get-window-by-number 1))
+    (split-window-right)
+    (select-window (other-window-for-scrolling))
+    (set-buffer
+     (get-buffer (find-file (concat org-directory "daily.org"))))
+    (my/goto-or-create-timestamp-header)
     (current-buffer))
 #+end_src
 *** Also =org-agenda=
@@ -112,7 +126,8 @@ There is most definitely a better way to enable org-agenda but I can't be bother
       (window-swap-states)
       (window-swap-states)
       (get-buffer (find-file (concat org-directory "papers.org"))))
-    (select-window (winum-get-window-by-number 1)))
+    (select-window (winum-get-window-by-number 1))
+    (current-buffer))
 #+end_src
 *** Putting it all together
 #+begin_src emacs-lisp
@@ -120,7 +135,8 @@ There is most definitely a better way to enable org-agenda but I can't be bother
         (lambda ()
   	(my/open-org-inbox)
   	(my/open-org-agenda)
-  	(my/window-setup)))
+  	(my/window-setup)
+  	(my/open-org-daily)))
 #+end_src
 ** Multilinguality
 *** Enable 한글
@@ -155,6 +171,27 @@ So that I don't have to manually initialise it every time
 *** Scratchpadding
 #+begin_src emacs-lisp
   (keymap-global-set "C-c f s" #'scratch-buffer)
+#+end_src
+*** Move pointer to new window
+#+begin_src emacs-lisp
+  (defun my/window-split-right ()
+    (interactive)
+    (select-window (split-window-right)))
+
+  (defun my/window-split-below ()
+    (interactive)
+    (select-window (split-window-below)))
+
+  (keymap-global-set "C-x 2" #'my/window-split-below)
+  (keymap-global-set "C-x 3" #'my/window-split-right)
+#+end_src
+*** Move pointer to nth window
+#+begin_src emacs-lisp
+  (defun my/move-window-pointer (n)
+    (interactive "p")
+    (when (and current-prefix-arg (integerp n))
+    (select-window (winum-get-window-by-number n))))
+  (keymap-global-set "M-o" #'my/move-window-pointer)
 #+end_src
 * Org Mode
 Honestly better than markdown tbh
@@ -546,8 +583,11 @@ Connecting Slack to org-agenda
    'my/slack-alert
    :title "org slack alerts"
    :notifier (lambda (info)
-    (when (get-buffer "slack.org")
-      (with-current-buffer "slack.org"
+    (if (get-buffer "slack.org")
+        (with-current-buffer "slack.org"
+  	(save-buffer))
+      (with-current-buffer
+        (get-buffer-or-create (find-file (concat org-directory "slack.org")))
         (save-buffer)))
       (let* ((channel (slack/parse-message-loc (plist-get info :title)))
   	   (user (slack/parse-sender (plist-get info :message)))
@@ -567,7 +607,7 @@ Connecting Slack to org-agenda
          nil
          (concat org-directory "slack.org")
          t))))
-  
+
   (setq alert-default-style 'message)
 
   (add-to-list 'alert-user-configuration
@@ -617,4 +657,8 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
         (slack-if-let* ((buffer slack-current-buffer))
   	  (slack-buffer-send-message buffer slack-msg))
         (save-buffer))))
+#+end_src
+** Start server
+#+begin_src emacs-lisp
+  (slack-start)
 #+end_src

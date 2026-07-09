@@ -1,1 +1,13 @@
-config.org
+#+STARTUP: overview inlineimages
+#+title: dania moriazi's emacs config
+#+CREATOR: dania moriazi
+#+LANGUAGE: en
+#+OPTIONS: num:nil
+
+Because version control.
+
+* Screenshots
+** =config.org=
+[[imgs/screenshot-config.png]]
+** Start-up page
+[[imgs/screenshot-init.png]]
