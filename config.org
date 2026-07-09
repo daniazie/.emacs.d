@@ -285,9 +285,9 @@ This drove me mad the first time I used org-mode
 #+end_src
 *** Protocol capture to reading list
 #+begin_src emacs-lisp
-  (defun archive-paper (result)
+  (defun my/archive-paper (result)
     (message "archive-paper called with: %S" result)
-    (save-to-ref-bib result)
+    (my/save-to-ref-bib result)
     (save-window-excursion
       (find-file (concat org-directory "paper-listup.org"))
       (goto-char (point-max))
@@ -321,10 +321,10 @@ This drove me mad the first time I used org-mode
   (setq org-protocol-protocol-alist
         '(("archive papers"
   	 :protocol "archive-papers"
-  	 :function archive-paper)
+  	 :function my/archive-paper)
   	("save refs"
   	 :protocol "save-to-ref-bib"
-  	 :function save-to-ref-bib)))
+  	 :function my/save-to-ref-bib)))
 #+end_src
 ** Custom org-links
 *** Save Github repo links
