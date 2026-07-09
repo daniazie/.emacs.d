@@ -72,6 +72,18 @@ Toggling away...
 #+begin_src emacs-lisp
   (electric-pair-mode t)
 #+end_src
+*** History
+#+begin_src emacs-lisp
+  (recentf-mode 1)
+  (setq history-length 15)
+  (savehist-mode)
+  (save-place-mode 1)
+#+end_src
+*** Auto-revert buffers
+#+begin_src emacs-lisp
+  (setq global-auto-revert-non-file-buffers t)
+  (global-auto-revert-mode 1)
+#+end_src
 * On Startup
 ** Setting up the windows
 *** Open =inbox.org= and =daily.org= on startup
@@ -103,7 +115,11 @@ Toggling away...
     (select-window (other-window-for-scrolling))
     (set-buffer
      (get-buffer (find-file (concat org-directory "daily.org"))))
-    (my/goto-or-create-timestamp-header)
+    (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
+  	 (pos (org-find-exact-headline-in-buffer timestamp)))
+      (if (not pos)
+  	(org-capture nil "d")
+        (goto-char (buffer-size))))
     (current-buffer))
 #+end_src
 *** Also =org-agenda=
@@ -160,13 +176,18 @@ So that I don't have to manually initialise it every time
 #+end_src
 * For Convenience
 ** Key bindings
-*** Shortcut to =config.org=
+*** Shortcut to =config.org= and =.emacs=
 #+begin_src emacs-lisp
   (defun my/open-config-file ()
     (interactive)
-    (get-buffer-create (find-file "~/.emacs.d/config.org")))
+    (get-buffer-create (find-file emacs-config-file)))
+
+  (defun my/open-dotemacs ()
+    (interactive)
+    (get-buffer-create (find-file user-init-file)))
 
   (keymap-global-set "C-c f p" #'my/open-config-file)
+  (keymap-global-set "C-c f e" #'my/open-dotemacs)
 #+end_src
 *** Scratchpadding
 #+begin_src emacs-lisp
@@ -290,7 +311,10 @@ This drove me mad the first time I used org-mode
   	("p" "capture" entry (file "capture-inbox.org")
   	 "* %:annotation %u\n %i\n%?")
   	("r" "weekly-report" entry (file "weekly-report.org")
-  	 "* %^{PROMPT}u \n ** 이번 주에 한 일 \n %? \n ** 다음 주에 할 일 \n** 도움이 필요하거나 공유할 사항 \n")))
+  	 "* %^{PROMPT}u \n ** 이번 주에 한 일 \n %? \n ** 다음 주에 할 일 \n** 도움이 필요하거나 공유할 사항 \n")
+  	("d" "daily-note" entry (file "daily.org")
+  	 "* %u \n** Tasks [/] \n%?\n** Log \n** Notes"
+  	 :immediate-finish t)))
 #+end_src
 *** Custom protocols
 #+begin_src emacs-lisp
@@ -305,34 +329,51 @@ This drove me mad the first time I used org-mode
 ** Custom org-links
 *** Save Github repo links
 #+begin_src emacs-lisp
-  (defun gh-open (repo _)
-    (browse-url (gh-expand-link repo)))
+  (defun my/gh-open (link _)
+    (browse-url (my/gh-expand-link link)))
 
-  (defun gh-expand-link (repo)
-    (format "https://github.com/%s" repo))
+  (defun my/gh-expand-link (link)
+    (if (string-search "#" link)
+        (apply #'format "https://github.com/%s/issues/%s" (my/gh-parse-link link))
+      (format "https://github.com/%s" link)))
 
-  (defun gh-export (link description backend info)
+  (defun my/gh-export (link description backend info)
     (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
         (let ((link (org-element-create
   		   'link (list :type "https"
-  			       :path (gh-expand-link repo)))))
+  			       :path (gh-expand-link link)))))
   	(funcall transcode-link link desc info))
       (concat "gh:" link)))
 
-  (defun gh-description (repo &optional description)
-    (or description repo))
+  (defun my/gh-parse-link (link) 
+    (let ((parts (string-split (string-remove-prefix "gh:" link) "#" t)))
+      parts))
 
-  (defun gh-store-link (repo &optional description)
+  (defun my/gh-link-description (link description)
+    (or description
+        (if (string-search "#" link)
+  	  (progn (let ((repo (nth 0 (my/gh-parse-link link)))
+  		       (issue (nth 1 (my/gh-parse-link link))))
+  		   (format "%s: %s" (string-remove-prefix "gh:" link) (my/gh-get-issue-title repo issue))))
+  	link)))
+
+  (defun my/gh-get-issue-title (repo issue)
+    (let ((cmd (format "gh issue view %s --repo %s --json title"
+  		     (shell-quote-argument issue)
+  		     (shell-quote-argument repo))))
+      (alist-get 'title (json-parse-string (shell-command-to-string cmd) :object-type 'alist))))
+    
+  (defun my/gh-store-link (link &optional description)
     (org-link-store-props
      :type "gh"
-     :link (gh-expand-link repo)
-     :description description))
+     :link (my/gh-expand-link link)
+     :description (my/gh-description link description)))
 
   (org-link-set-parameters "gh"
-  			 :follow #'gh-open
-  			 :export #'gh-export
-  			 :insert-description #'gh-description
-  			 :store-link #'gh-store-link)
+  			 :follow #'my/gh-open
+  			 :export #'my/gh-export
+  			 :store-link #'my/gh-store-link
+  			 :insert-description #'my/gh-link-description)
 #+end_src
 *** Save HF repo links
 #+begin_src emacs-lisp
@@ -346,7 +387,7 @@ This drove me mad the first time I used org-mode
         (format "https://huggingface.co/datasets/%s" repo)
       (format "https://huggingface/co/%s" repo)))
 
-  (defun hf-export (link description backend info &optional repo-type)
+  (defun hf-export (repo description backend info &optional repo-type)
     (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
         (let ((link (org-element-create
   		   'link (list :type "https"
@@ -368,6 +409,20 @@ This drove me mad the first time I used org-mode
   			 :export #'hf-export
   			 :insert-description #'hf-description
   			 :store-link #'hf-store-link)
+#+end_src
+
+* Mamba
+I use mamba as my main python interpreter
+#+begin_src emacs-lisp
+  (require 'conda)
+  (conda-env-initialize-interactive-shells)
+  (conda-env-initialize-eshell)
+  (conda-env-autoactivate-mode t)
+  (add-hook 'find-file-hook (lambda ()
+  			    (when (bound-and-true-p conda-project-env-path)
+  			      (conda-env-activate-for-buffer))))
+  (custom-set-variables '(conda-anaconda-home "~/miniforge3/"))
+  (conda-env-activate "base")
 #+end_src
 * Bibliography Management with Elfeed
 Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_research_workflow/][blog post]] I used for this.
@@ -596,13 +651,13 @@ Connecting Slack to org-agenda
         (write-region
          (s-concat
   	"** UNREAD "
-  	(format "%s : %s"
+  	(format "<%s> %s : %s"
+  		(format "<%s>"
+  			(format-time-string "%Y-%m-%d %H:%M"))
   		channel
   		user)
   	"\n"
   	(format "%s" message)
-  	(format "<%s>"
-  		(format-time-string "%Y-%m-%d %HH:%M"))
   	"\n")
          nil
          (concat org-directory "slack.org")
@@ -644,8 +699,9 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
   	   (pyscript (file-truename "~/.emacs.d/configs/convert-org-to-slack.py)")
   	   (cmd (format "python %s --md %s"
   			(shell-quote-argument pyscript)
-  			(shell-quote-argument slack-md))))
-        (print (shell-command-to-string cmd))))))
+  			(shell-quote-argument slack-md)))))
+        (kill-buffer)
+        (shell-command-to-string cmd))))
 #+end_src
 *** Sending the message
 #+begin_src emacs-lisp
@@ -661,4 +717,101 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
 ** Start server
 #+begin_src emacs-lisp
   (slack-start)
+#+end_src
+* Git
+** Foundationals
+*** Repo list
+#+begin_src emacs-lisp
+  (setq gh-repo-list '("daniazie/daniazie.github.io" "ldi-kyunghee/agentic-memory"))
+
+  (defun my/gh-select-repo ()
+    (interactive)
+     (let ((repo (completing-read "Select github repo: " gh-repo-list)))
+       (when (not (member repo gh-repo-list))
+         (add-to-list 'gh-repo-list (list repo)))
+       (format "%s" repo)))
+#+end_src
+** Forge & Magit
+#+begin_src emacs-lisp
+  (with-eval-after-load 'magit
+    (require 'forge))
+#+end_src
+** Create PR and issues
+*** org-mode to gfm
+#+begin_src emacs-lisp
+  (defun my/org-to-gfm ()
+    (interactive)
+    (goto-char (point))
+    (let ((buffer (org-org-export-as-org nil 'subtree))
+  	(pyscript (file-truename "~/.emacs.d/configs/convert-org-to-gfm.py")))
+      (save-window-excursion
+        (get-buffer-create buffer)
+        (let* ((body (string-trim (buffer-string)))
+  	     (cmd (format "python %s --org %s"
+  			  (shell-quote-argument pyscript)
+  			  (shell-quote-argument body))))
+  	(shell-command-to-string cmd))
+        (kill-buffer))))
+
+  (keymap-global-set "C-c g p" #'my/org-to-gfm)
+#+end_src
+*** heading to title
+#+begin_src emacs-lisp
+  (defun my/gh-title ()
+    (interactive)
+    (save-window-excursion
+      (when (org-at-heading-p)
+        (let ((title (buffer-substring-no-properties (line-beginning-position) (line-end-position))))
+  	(string-trim (string-trim title "*"))))))
+#+end_src
+*** Write post
+#+begin_src emacs-lisp
+  (defun my/gh-args-list (gh-type)
+    (let ((gh-args '("assignee" "template" "editor" "project" "recover" "web" "label" "milestone"))
+  	(gh-pr-args '("base" "draft" "dry-run" "head"))
+  	(gh-issue-args '("parent" "type")))
+      (if (string= gh-type "pr")
+  	(append gh-args gh-pr-args)
+        (append gh-args gh-issue-args))))
+
+  (defun my/gh-additional-args (gh-args)
+    (interactive)
+    (let ((gh-args-create nil))
+      (while gh-args
+        (let* ((gh-key (pop gh-args))
+  	     (gh-val (read-string (format "%s: " gh-key))))
+  	(unless (string-empty-p gh-val)
+  	  (setq gh-args-create
+  		(plist-put gh-args-create
+  			   (intern (format ":%s" gh-key)) gh-val))
+  	  gh-args-create)))))
+
+  (defun my/gh-write ()
+    (interactive)
+    (let* ((create-new (completing-read "Create new: " '("pr" "issue") nil t))
+  	 (gh-args-keys (my/gh-args-list create-new))
+  	 (create-title (my/gh-title))
+  	 (create-body (my/org-to-gfm))
+  	 (gh-args (my/gh-additional-args gh-args-keys))
+  	 (cmd (format "gh %s create --title %s --body %s "
+  		      (shell-quote-argument create-new)
+  		      (shell-quote-argument create-title)
+  		      (shell-quote-argument create-body))))
+      (when gh-args
+        (while gh-args
+  	(let ((key (pop gh-args))
+  	      (val (pop gh-args)))
+  	  (setq cmd (concat cmd (format "--%s %s "
+  					key
+  					(shell-quote-argument val)))))))
+      cmd))
+
+  (defun my/gh-create ()
+    (interactive)
+    (let* ((repo (my/gh-select-repo))
+  	 (cmd-prefix (call-interactively #'my/gh-write))
+  	 (cmd (concat cmd-prefix (format "--repo %s" (shell-quote-argument repo)))))
+      (shell-command-to-string cmd)))
+
+  (keymap-global-set "C-c g c" #'my/gh-create)
 #+end_src

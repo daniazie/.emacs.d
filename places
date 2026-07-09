@@ -1,0 +1,10 @@
+;;; -*- coding: utf-8; mode: lisp-data -*-
+(("/home/dania/org/meeting.org" . 2496)
+ ("/home/dania/org/papers.org" . 585)
+ ("/home/dania/org/inbox.org" . 1463)
+ ("/home/dania/org/daily.org" . 359)
+ ("/home/dania/.emacs.d/.org-id-locations" . 108)
+ ("/home/dania/.emacs.d/config.org" . 26858)
+ ("/home/dania/org/"
+  (dired-filename . "/home/dania/org/agentic-memory"))
+ ("/home/dania/org/paper-listup.org" . 111))

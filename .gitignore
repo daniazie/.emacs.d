@@ -13,4 +13,5 @@ elfeed
 configs/config-*
 bookmarks
 tramp
-emojis
+emojis.org-id-locations
+.sqlite
