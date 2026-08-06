@@ -1,0 +1,10 @@
+#+STARTUP: overview inlineimages
+#+title: dania moriazi's emacs config
+#+CREATOR: dania moriazi
+#+LANGUAGE: en
+#+OPTIONS: num:nil
+
+Because version control.
+
+* startup page
+[[file:img/dashboard.png]]

@@ -1,0 +1,11 @@
+*.org~
+*.~undo-tree~
+.org-generic-id-locations
+*.el~
+straight/
+eln-cache/
+data/
+elpa/
+tree-sitter/
+var/
+config.el
