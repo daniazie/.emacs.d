@@ -17,18 +17,11 @@
 (setq read-process-output-max (* 1024 1024))
 
 (custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
  '(org-agenda-files
    '("/home/dania/org/agentic-memory.org" "/home/dania/org/calendar.org"
      "/home/dania/org/daily.org" "/home/dania/org/meeting.org"
      "/home/dania/org/paper-listup.org" "/home/dania/org/todo.org"
-     "/home/dania/org/slack.org"))
- '(safe-local-variable-values
-   '((conda-projectile-name-assoc quote ("mem" . "agentic-memory"))
-     (conda-project-env-path . "mem"))))
+     "/home/dania/org/slack.org")))
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -578,6 +571,19 @@
   :ensure t
   :hook
   (tty-setup . global-kkp-mode))
+
+(use-package popterm
+  :ensure t
+  :if (display-graphic-p) ;; I only want to use popterm if I'm using the GUI version.
+  :bind (("C-`"   . popterm-toggle)
+         ("C-~"   . popterm-toggle-cd)
+         ([f9]    . popterm-window-toggle))
+  :config
+  (setq popterm-backend        'ghostel     ; or 'ghostel, 'eat, 'shell, 'eshell
+        popterm-display-method 'posframe  ; or 'window, 'fullscreen
+        popterm-scope          'project   ; or 'frame, 'dedicated, nil
+        popterm-auto-cd        t)
+  (popterm-global-mode 1))
 
 (defun my/convert-time (&optional DATE TIME ZONE)
   (encode-time
@@ -1301,7 +1307,7 @@
 	("M-n" . code-cells-forward-cell)
 	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
 :config
-(add-to-list 'code-cells-convert-ipynb-style '("jupytext" "to" "py:percent"))
+(add-to-list 'code-cells-convert-ipynb-style '("jupytext" "--to" "py:percent"))
 (defun my/code-cells-new-cell ()
   (interactive)
   (newline 2)
@@ -1879,9 +1885,3 @@
 	   (append zotra-after-get-bibtex-entry-hook
 		   '(zotra-download-attachment-for-current-entry))))
       (zotra-add-entry url))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
