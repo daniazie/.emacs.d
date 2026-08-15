@@ -17,11 +17,18 @@
 (setq read-process-output-max (* 1024 1024))
 
 (custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(org-agenda-files
    '("/home/dania/org/agentic-memory.org" "/home/dania/org/calendar.org"
      "/home/dania/org/daily.org" "/home/dania/org/meeting.org"
      "/home/dania/org/paper-listup.org" "/home/dania/org/todo.org"
-     "/home/dania/org/slack.org")))
+     "/home/dania/org/slack.org"))
+ '(safe-local-variable-values
+   '((conda-projectile-name-assoc quote ("mem" . "agentic-memory"))
+     (conda-project-env-path . "mem"))))
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -1411,16 +1418,7 @@
   :config
   (treemacs-projectile)
   (keymap-global-set "C-c t o" #'treemacs-select-window)
-  (keymap-global-set "C-c t t" #'treemacs)
-
-  (defun my/treemacs-load-dir-locals ()
-    (interactive)
-    (let ((dir (treemacs--current-directory-project-function)))
-      (dir-locals-read-from-dir dir)
-      (when conda-env-name-for-buffer
-        (conda-env-activate-for-buffer))))
-
-  (add-hook 'treemacs-mode-hook #'my/treemacs-load-dir-locals 50))
+  (keymap-global-set "C-c t t" #'treemacs))
 
 (use-package undo-tree
   :ensure t
@@ -1881,3 +1879,9 @@
 	   (append zotra-after-get-bibtex-entry-hook
 		   '(zotra-download-attachment-for-current-entry))))
       (zotra-add-entry url))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
