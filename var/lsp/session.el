@@ -1,1 +1,0 @@
-#s(lsp-session ("/home/dania/.emacs.d") nil #s(hash-table test equal data (ruff nil)) #s(hash-table test equal) #s(hash-table test equal))

@@ -1,9 +1,0 @@
-* Default
-** agentic-memory
- - path :: ~/Documents/research/agentic-memory
-* config-emacs
-** .emacs.d
- - path :: ~/.emacs.d
-* Hamster
-** agentic-memory
- - path :: /ssh:Hamster:/home/dania/agentic-memory
