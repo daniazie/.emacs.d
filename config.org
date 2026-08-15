@@ -1,152 +1,246 @@
 #+STARTUP: overview
-#+title: emacs config
+#+title: my emacs config
 #+creator: dania moriazi
-#+language: en
 #+OPTIONS: num:nil
 
-#+begin_src emacs-lisp :comments no
+Following [[gh:protesilaos][protesilaos]]'s configuration, instead of calling =org-babel-load-file=, we tangle the current file and load it as a =.el= file instead.
+
+#+begin_src emacs-lisp :tangle no
+  (org-babel-tangle)
+#+end_src
+
+#+RESULTS:
+| /home/dania/.emacs.d/init.el | /home/dania/.emacs.d/early-init.el |
+
+* early initialisation
+Here, we write our =early-init.el= configuration. For some reason, emacs still uses legacy behaviour w.r.t the init file, so we're going to have to reset the =user-init-file= variable for convenience's sake
+#+begin_src emacs-lisp :tangle "early-init.el" :exports code
   ;;; -*- lexical-binding: t; no-byte-compile: t -*-
+  (setopt user-init-file (expand-file-name "init.el" user-emacs-directory))
+
+  (setq package-enable-at-startup nil)
+  (add-hook 'after-init-hook (lambda () (set-frame-name "home")))
 #+end_src
 
-* Basics
-Toggling away...
-** Aesthetics
-*** Welcome screen begone
-#+BEGIN_SRC emacs-lisp
-(setq inhibit-startup-message t)
-#+END_SRC
-*** Remove toolbar, menubar and scrollbar
-#+BEGIN_SRC emacs-lisp
-(scroll-bar-mode -1)
-(tool-bar-mode -1)
-(menu-bar-mode -1)
-#+END_SRC
-*** Theme
+* initialisation
+#+PROPERTY: header-args:emacs-lisp :tangle "init.el" :exports code
+Here, we write our configuration for =init.el=. Our first order of business: garbage collection.
 #+begin_src emacs-lisp
-  (load-theme 'doom-gruvbox t)
-  (set-fontset-font t 'hangul "Hahmlet")
-#+end_src
-*** Show line numbers
-#+BEGIN_SRC emacs-lisp
-  (global-display-line-numbers-mode t)
-#+END_SRC
-*** Text wrapping
-#+begin_src emacs-lisp
-  (global-visual-line-mode t)
-#+end_src
-*** Display matching delimiters
-#+begin_src emacs-lisp
-  (add-hook 'emacs-startup-hook #'show-paren-mode)
-#+end_src
-*** Display window numbers
-#+begin_src emacs-lisp
-  (winum-mode 1)
-#+end_src
-*** Disable dialogue boxes
-#+begin_src emacs-lisp
-  (setq use-file-dialog nil)
-  (setq use-dialog-box nil)
-#+end_src
-*** Full screen
-#+begin_src emacs-lisp
-  (add-to-list 'default-frame-alist '(fullscreen . maximized))
-#+end_src
-*** Ensure org files are folded on startup
-#+begin_src emacs-lisp
-  (setq org-startup-folded t)
-#+end_src
-*** Turn that bell off
-#+begin_src emacs-lisp
-  (setq ring-bell-function 'ignore)
-#+end_src
-*** nerd icons 
-#+begin_src emacs-lisp
-  (use-package nerd-icons-dired
-    :demand t
-    :hook
-    (dired-mode . nerd-icons-dired-mode))
-#+end_src
-*** a prettier modeline
-#+begin_src emacs-lisp
-  (use-package doom-modeline
-  :ensure t
-  :init (doom-modeline-mode 1))
-#+end_src
-*** dired-sidebar
-#+begin_src emacs-lisp
-  (use-package dired-subtree
-    :commands (dired-subtree-toggle dired-subtree-cycle)
-    :config
-    (setq dired-subtree-line-prefix " ")
-    (setq dired-subtree-use-backgrounds nil))
+  ;;; -*- lexical-binding: t-*-
 
-  (use-package dired-sidebar
-    :bind (("C-x C-n" . dired-sidebar-toggle-sidebar))
+  (setq gc-cons-percentage 1.0)
+  (if noninteractive
+      (setq gc-cons-threshold 134217728)
+    (progn (setq gc-cons-threshold most-positive-fixnum)
+           (setq load-prefer-newer nil)))
+
+  (setq inhibit-compacting-font-caches t)
+  (profiler-start 'cpu+mem)
+
+  (setq gc-cons-threshold most-positive-fixnum
+        gc-cons-percentage 0.5)
+  (add-hook 'emacs-startup-hook
+            (lambda () (setq gc-cons-threshold 800000)))
+
+  (setq read-process-output-max (* 1024 1024))
+#+end_src
+
+** setting up package archives
+*** straight
+some packages I use require =straight.el=
+#+begin_src emacs-lisp
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name
+          "straight/repos/straight.el/bootstrap.el"
+          (or (bound-and-true-p straight-base-dir)
+              user-emacs-directory)))
+        (bootstrap-version 7))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+end_src
+
+*** the basics
+setup =package= and =use-package=, along with adding melpa to our package archives.
+#+begin_src emacs-lisp
+  (require 'package)
+  (require 'use-package)
+
+  (add-to-list 'package-archives
+  	     '("melpa" . "https://melpa.org/packages/") t)
+#+end_src
+
+*** initialisation
+and now we can initialise our package archives
+#+begin_src emacs-lisp
+  (package-initialize)
+
+  (setq load-prefer-newer t)
+#+end_src
+
+** no-littering
+we try to keep a litter-free space.
+#+begin_src emacs-lisp
+  (use-package no-littering
     :ensure t
-    :commands (dired-sidebar-toggle-sidebar)
-    :init
-    (add-hook 'dired-sidebar-mode-hook
-              (lambda ()
-                (unless (file-remote-p default-directory)
-                  (auto-revert-mode))))
     :config
-    (push 'toggle-window-split dired-sidebar-toggle-hidden-commands)
-    (push 'rotate-windows dired-sidebar-toggle-hidden-commands)
-
-    (setq dired-sidebar-subtree-line-prefix "__")
-    (setq dired-sidebar-theme 'vscode)
-    (setq dired-sidebar-use-term-integration t)
-    (setq dired-sidebar-use-custom-font t))
+    (setq no-littering-etc-directory
+          (expand-file-name "config/" user-emacs-directory))
+    (setq no-littering-var-directory
+          (expand-file-name "data/" user-emacs-directory))
+    (let ((dir (no-littering-expand-var-file-name "lock-files/")))
+      (make-directory dir t)
+      (setq lock-file-name-transforms `((".*" ,dir t)))))
 #+end_src
-** Functionality
-*** emacs
+** running gc
+#+begin_src emacs-lisp 
+  (use-package gcmh
+    :ensure t
+    :config
+    (gcmh-mode 1))
+#+end_src
+** compile-angel
+using compile-angel to speed emacs up.
+#+begin_src emacs-lisp
+  (use-package compile-angel
+    :ensure t
+    :config
+    (setq compile-angel-verbose t)
+    (push "/init.el" compile-angel-excluded-path-suffixes)
+    (push "/early-init.el" compile-angel-excluded-path-suffixes)
+    (push "/config.el" compile-angel-excluded-path-suffixes)
+    (compile-angel-on-load-mode 1))
+#+end_src
+** emacs configuration
+this is where I setup my emacs theme and also some keybindings I use frequently
 #+begin_src emacs-lisp
   (use-package emacs
-    :demand t
-    :custom
-    (tab-always-indent 'complete)
-    (text-mode-ispell-word-completion nil)
-    (read-extended-command-predicate #'command-completion-default-include-p)
-    (set-language-environment-nonascii-translation 'Korean)
-    (calendar-week-start-day 0))
-  (add-hook 'dired-mode-hook 'dired-omit-mode)
-  (add-hook 'dired-sidebar-mode-hook 'dired-omit-mode)
-#+end_src
-*** eshell
-#+begin_src emacs-lisp
-  (use-package eshell
-    :defer t
-    :ensure nil  ; Built-in to Emacs
-    :hook (eshell-mode . (lambda ()
-  			 ;; Force 256 color support
-  			 (setenv "TERM" "xterm-256color")
-  			 ;; Prefer standard completion over intrusive popups
-  			 (setq-local company-idle-delay nil)))
+    :init
+    ;; personally, I prefer not to have the menu-, tool- and scroll-bars.
+    (scroll-bar-mode -1)
+    (tool-bar-mode -1)
+    (menu-bar-mode -1)
+
+    ;; I am a habitual delete-by-selection user
+    (delete-selection-mode)
+
+    ;; also, I like to have my delimiters matched automatically
+    (electric-pair-mode t)
+
+    ;; have emacs open in fullscreen by default
+    (add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+    ;; setting up fonts because
+    ;; ;; 1. the theme I use for some reason fails to properly render certain icons
+    ;; ;; 2. aesthetics
+    (set-face-attribute 'default nil :font "D2KodingLigatureNerdFont" :height 110)
+    (set-fontset-font t 'hangul "Hahmlet") ;; D2Koding is also actually a font for the Korean language but I like how Hahmlet looks more w.r.t. the Korean alphabet
+    
     :config
-    ;; 1. Handle visual (TUI) commands seamlessly
-    (with-eval-after-load 'em-term
-      (add-to-list 'eshell-visual-commands "htop")
-      (add-to-list 'eshell-visual-commands "top")
-      (add-to-list 'eshell-visual-commands "vim")
-      (add-to-list 'eshell-visual-commands "nano")
-      (add-to-list 'eshell-visual-commands "tmux"))
+    (keymap-global-set "C-c f s" #'scratch-buffer) ;; I want to be able to pull up the scratch buffer easily
+    (keymap-global-set "C-x 4 s" #'window-swap-states) ;; I also want to be able to swap window states with a keybind
+    (keymap-global-set "C-x 5 n" #'make-frame) ;; And I want to be able make a new frame with just the scratch buffer
+
+    (global-display-line-numbers-mode 1) ;; I want my line numbers displayed too
     
-    ;; 2. Quality of Life Variables
-    (setq eshell-history-size 10000
-  	eshell-buffer-maximum-lines 10000
-  	eshell-hist-ignoredups t
-  	eshell-scroll-to-bottom-on-input 'all
-  	eshell-destroy-buffer-when-process-dies t)
+    (setq enable-recursive-minibuffers t)
+    (setopt use-short-answers t) ;; I cannot be bothered to type yes/no in full every time
+
+    (context-menu-mode t)
+
+    (add-hook 'dired-mode #'dired-omit-mode) ;; I don't need to see all the .*~ files when I open up dired
+
+    :hook
+    (after-init . show-paren-mode) ;; being careless, I like to see my matching delimiters
+
+    :custom
+    (read-extended-command-predicate #'command-completion-default-include-p)
+    (minibuffer-prompt-properties
+     '(read-only t cursor-intangible t face minibuffer-prompt))
+
+    ;; half the time, I can't be bothered to do M-<tab> every time, so I use 'complete
+    (tab-always-indent 'complete)
+    (text-mode-ispell-word-completion nil) ;; I use the British English spelling convention and I honestly can't be arsed to configure emacs for British English as well, so may as well just turn this off.
     
-    ;; 3. Custom Functions (A true 'clear' mechanism)
-    (defun eshell/clear ()
-      "Clear the eshell buffer properly, mimicking standard terminal behavior."
-    (interactive)
-    (let ((inhibit-read-only t))
-      (erase-buffer)
-      (eshell-send-input))))
+    (set-language-environment-nonascii-translation 'Korean) ;; emacs once got real finnicky with the Korean alphabet and after fixing it, I said never again and added this.
+
+    (calendar-week-start-day 0) ;; I personally like my calendar week to start on Sundays
+    
+    (completion-cycling t) ;; when using completion-at-point, cycle through options
+    (display-line-numbers-type 'relative) ;; I discovered relative line numbers and never looked back
+    
+    (inhibit-startup-message t) ;; I don't need this
+    
+    (global-visual-line-mode t) ;; word wrapping
+    (use-file-dialog nil) ;; I want to keep everything in emacs pls
+    (use-dialog-box nil)
+    (org-startup-folded t) ;; a more compact display
+    (ring-bell-function 'ignore)) ;; the ring bell always annoyed me tbh
 #+end_src
-*** Setup shell
+*** inhibit mouse
+I'm trying to get in the habit of exclusively using my keyboard
+#+begin_src emacs-lisp 
+  (use-package inhibit-mouse
+    :ensure t
+    :config
+    (inhibit-mouse-mode))
+#+end_src
+** theme
+I use doom-themes and doom-modeline
+#+begin_src emacs-lisp
+  (use-package doom-themes
+    :ensure t
+    :init
+    (load-theme 'doom-gruvbox t))
+
+  (use-package doom-modeline
+    :ensure t
+    :init
+    (doom-modeline-mode 1))
+#+end_src
+** dired-sidebar
+I like to have a sidebar for my directories for simplicity's sake.
+#+begin_src emacs-lisp
+  (use-package dired-subtree
+    :commands
+    (dired-subtree-toggle dired-subtree-cycle)
+    :custom
+    (dired-subtree-line-prefix " ")
+    (dired-subtree-use-backgrounds nil))
+
+  (use-package dired-sidebar
+    :ensure t
+    :bind
+    (("C-x C-n" . dired-sidebar-toggle-sidebar))
+    :commands
+    (dired-sidebar-toggle-sidebar)
+    :hook
+    (dired-sidebar-mode . dired-omit-mode)
+    :custom
+    (dired-sidebar-subtree-line-prefix "__")
+    (dired-sidebar-theme 'nerd-icons)
+    (dired-sidebar-use-term-integration t)
+    (dired-sidebar-use-custom-font t)
+    (dired-sidebar-no-delete-other-windows t))
+#+end_src
+
+** ibuffer
+ibuffer is much more convenient than the built-in list-buffers
+#+begin_src emacs-lisp
+  (use-package ibuffer
+    :bind
+    ("C-x C-b" . ibuffer))
+#+end_src
+
+** shell
+I want emacs to detect my shell paths
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (when (memq window-system '(mac ns x))
   (use-package exec-path-from-shell
@@ -155,6 +249,7 @@ Toggling away...
     :config
     (exec-path-from-shell-initialize)))
 #+end_src
+<<<<<<< HEAD
 *** Enable which-key
 #+begin_src emacs-lisp
   (use-package which-key
@@ -175,6 +270,149 @@ Toggling away...
   (use-package consult
     ;; Replace bindings. Lazily loaded by `use-package'.
     :demand t
+=======
+
+** configure which-key
+I don't think I would've lasted as long as I have if it were not for which-key
+#+begin_src emacs-lisp 
+  (use-package which-key
+    :ensure t
+    :custom
+    (which-key-popup-type 'side-window)
+    :config
+    (which-key-setup-side-window-right-bottom)
+    (which-key-mode))
+#+end_src
+
+** vertico, consult, orderless, marginalia, and embark
+emacs' holy trinity (vertico, orderless, marginalia) plus two
+*** vertico
+#+begin_src emacs-lisp
+  ;; Enable Vertico.
+  (use-package vertico
+    :custom
+    (vertico-scroll-margin 0) ;; Different scroll margin
+    (vertico-count 20) ;; Show more candidates
+    (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
+    (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
+    :init
+    (vertico-mode)
+    (defun my/vertico-insert ()
+      (interactive)
+      (let* ((mb (minibuffer-contents-no-properties))
+             (lc (if (string= mb "") mb (substring mb -1))))
+        (cond ((string-match-p "^[/~:]" lc) (self-insert-command 1 ?/))
+              ((file-directory-p (vertico--candidate)) (vertico-insert))
+              (t (self-insert-command 1 ?/)))))
+
+    (setq vertico-multiform-commands
+          '(("\\`execute-extended-command" unobtrusive
+             (vertico-flat-annotate . t)
+             (marginalia-annotators (command marginalia-annotate-binding)))))
+
+    (defun down-from-outside ()
+      "Move to next candidate in minibuffer, even when minibuffer isn't selected."
+      (interactive)
+      (with-selected-window (active-minibuffer-window)
+        (execute-kbd-macro [down])))
+
+    (defun up-from-outside ()
+      "Move to previous candidate in minibuffer, even when minibuffer isn't selected."
+      (interactive)
+      (with-selected-window (active-minibuffer-window)
+        (execute-kbd-macro [up])))
+
+    (defun to-and-fro-minibuffer ()
+      "Go back and forth between minibuffer and other window."
+      (interactive)
+      (if (window-minibuffer-p (selected-window))
+          (select-window (minibuffer-selected-window))
+        (select-window (active-minibuffer-window))))
+
+    (defun +embark-live-vertico ()
+      "Shrink Vertico minibuffer when `embark-live' is active."
+      (when-let (win (and (string-prefix-p "*Embark Live" (buffer-name))
+                          (active-minibuffer-window)))
+        (with-selected-window win
+          (when (and (bound-and-true-p vertico--input)
+                     (fboundp 'vertico-multiform-unobtrusive))
+            (vertico-multiform-unobtrusive)))))
+    
+    (add-hook 'embark-collect-mode-hook #'+embark-live-vertico)
+    
+    :bind
+    (:map vertico-map
+          ("/" . #'my/vertico-insert)))
+
+  (use-package vertico-buffer
+    :after vertico)
+
+  (use-package vertico-grid
+    :after vertico)
+
+  (use-package vertico-multiform
+    :after vertico
+    :init
+    (defun vertico-multiform-buffer-grid ()
+      "Toggle displaying Vertico as a grid in a large window (like a regular buffer)."
+      (interactive)
+      (if (equal '(vertico-buffer-mode vertico-grid-mode) (car vertico-multiform--stack))
+          (vertico-multiform-vertical)
+        (setcar vertico-multiform--stack '(vertico-buffer-mode vertico-grid-mode))
+        (vertico-multiform--toggle 1)))
+    
+    :bind
+    (:map vertico-multiform-map ("M-H" . vertico-multiform-buffer-grid)))
+
+  (use-package vertico-directory
+    :after vertico
+    ;; More convenient directory navigation commands
+    :bind (:map vertico-map
+                ("RET"   . vertico-directory-enter)
+                ("DEL"   . vertico-directory-delete-char)
+                ("M-DEL" . vertico-directory-delete-word))
+    ;; Tidy shadowed file names
+    :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+
+  ;; Persist history over Emacs restarts. Vertico sorts by history position.
+  (use-package savehist
+    :init
+    (savehist-mode)
+    :config
+    (setq history-length 15))
+#+end_src
+
+*** orderless
+#+begin_src emacs-lisp 
+  (use-package orderless
+    :custom
+    (completion-styles '(orderless basic))
+    (completion-category-overrides '((file (styles partial-completion))))
+    (completion-category-defaults nil)
+    (completion-pcm-leading-wildcard t))
+#+end_src
+
+*** marginalia
+#+begin_src emacs-lisp 
+  (use-package marginalia
+    :ensure t
+    :config
+    (marginalia-mode))
+#+end_src
+
+*** consult
+#+begin_src emacs-lisp
+    ;; Example configuration for Consult
+  (use-package consult-flycheck
+    :ensure t
+    :demand t
+    :commands
+    consult-flycheck)
+
+  (use-package consult
+    ;; Replace bindings. Lazily loaded by `use-package'.
+    :defer nil
+>>>>>>> 5e7a573 (update configuration)
     :bind (;; C-c bindings in `mode-specific-map'
            ("C-c M-x" . consult-mode-command)
            ("C-c h" . consult-history)
@@ -184,7 +422,11 @@ Toggling away...
            ([remap Info-search] . consult-info)
            ;; C-x bindings in `ctl-x-map'
            ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+<<<<<<< HEAD
   	 ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+=======
+           ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+>>>>>>> 5e7a573 (update configuration)
            ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
            ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
            ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
@@ -196,10 +438,18 @@ Toggling away...
            ("C-M-#" . consult-register)
            ;; Other custom bindings
            ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+<<<<<<< HEAD
            ;; M-g bindings in `goto-map'
            ("M-g e" . consult-compile-error)
            ("M-g r" . consult-grep-match)
            ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+=======
+           ("C-c & C-s" . consult-yasnippet)         ;; orig. yas-insert-snippet
+           ;; M-g bindings in `goto-map'
+           ("M-g e" . consult-compile-error)
+           ("M-g r" . consult-grep-match)
+           ("M-g f" . consult-flycheck)               ;; Alternative: consult-flycheck
+>>>>>>> 5e7a573 (update configuration)
            ("M-g g" . consult-goto-line)             ;; orig. goto-line
            ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
            ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
@@ -228,16 +478,24 @@ Toggling away...
            :map minibuffer-local-map
            ("M-s" . consult-history)                 ;; orig. next-matching-history-element
            ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+<<<<<<< HEAD
 
     ;; The :init configuration is always executed (Not lazy)
     :init
 
+=======
+    
+      ;; The :init configuration is always executed (Not lazy)
+    :init
+    
+>>>>>>> 5e7a573 (update configuration)
     ;; Tweak the register preview for `consult-register-load',
     ;; `consult-register-store' and the built-in commands.  This improves the
     ;; register formatting, adds thin separator lines, register sorting and hides
     ;; the window mode line.
     (advice-add #'register-preview :override #'consult-register-window)
     (setq register-preview-delay 0.5)
+<<<<<<< HEAD
 
     ;; Use Consult to select xref locations with preview
     (setq xref-show-xrefs-function #'consult-xref
@@ -247,6 +505,17 @@ Toggling away...
     ;; after lazily loading the package.
     :config
 
+=======
+    
+    ;; Use Consult to select xref locations with preview
+    (setq xref-show-xrefs-function #'consult-xref
+          xref-show-definitions-function #'consult-xref)
+    
+    ;; Configure other variables and modes in the :config section,
+    ;; after lazily loading the package.
+    :config
+    
+>>>>>>> 5e7a573 (update configuration)
     ;; Optionally configure preview. The default value
     ;; is 'any, such that any key triggers the preview.
     ;; (setq consult-preview-key 'any)
@@ -262,6 +531,7 @@ Toggling away...
      consult-source-recent-file consult-source-project-recent-file
      ;; :preview-key "M-."
      :preview-key '(:debounce 0.4 any))
+<<<<<<< HEAD
 
     (setq consult-narrow-key "C-+") ;; 
 
@@ -312,10 +582,100 @@ Toggling away...
                                            #'corfu-send)))))
 
     (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
+=======
+    
+    (setq consult-narrow-key "C-+") ;; 
+    
+    ;; Optionally make narrowing help available in the minibuffer.
+    ;; You may want to use `embark-prefix-help-command' or which-key instead.
+    ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
+    (consult-info-define "emacs" "efaq" "elisp" "cl" "compat" "eshell")
+    (consult-info-define 'completion
+                         "vertico" "consult" "marginalia" "orderless"
+                         "embark" "corfu" "cape" "tempel")
+    (consult-info-define "org")
+    (consult-info-define "gnus")
+    (consult-info-define "magit"))
+#+end_src
+
+*** embark
+#+begin_src emacs-lisp 
+  (use-package embark
+    :ensure t
+    :bind
+    (("C-." . embark-act)
+     ("M-." . embark-dwim)
+     ("C-h B" . embark-bindings))
+    :init
+    (setq prefix-help-command #'embark-prefix-help-command)
+    :config
+    (add-to-list 'display-buffer-alist
+                 '("\\`\\*Embark Collect\\(Live\\|Completions\\)\\*"
+                   nil
+                   (window-parameters (mode-line-format . none)))))
+
+  (use-package embark-consult
+    :ensure t)
+#+end_src
+
+** on completion-at-point
+here we configure cape and corfu (but not in that order)
+*** corfu
+#+begin_src emacs-lisp
+  (use-package corfu
+    :demand t
+    :ensure t
+    :custom
+    (setq corfu-auto t
+  	corfu-auto-delay 0
+  	corfu-auto-prefix 0)
+    (corfu-cycle t)
+    (corfu-quit-at-boundary nil)
+    (corfu-quit-no-match nil)
+    (setq global-corfu-minibuffer
+  	(lambda ()
+  	  (not (or (bound-and-true-p mct--active)
+  		   (bound-and-true-p vertico--input)
+  		   (eq (current-local-map) read-passwd-map)))))
+    (corfu-separator ?_)
+    :hook
+    (eshell-mode . (lambda ()
+  		   (setq-local corfu-auto nil)
+  		   (corfu-mode)))
+    (corfu-mode . (lambda ()
+  		  ;; Settings only for Corfu
+  		  (setq-local completion-styles '(basic)
+  			      completion-category-overrides nil
+  			      completion-category-defaults nil)))
+    :bind
+    (:map corfu-map ("SPC" . corfu-insert-separator))
+    :init
+    (global-corfu-mode)
+    (corfu-history-mode)
+    (corfu-popupinfo-mode)
+    :config
+    (keymap-unset corfu-map "RET")
+    (keymap-set corfu-map "RET" `( menu-item "" nil :filter
+  				 ,(lambda (&optional _)
+  				    (and (derived-mode-p 'eshell-mode 'comint-mode)
+  					 #'corfu-send)))))
+
+  (use-package corfu-candidate-overlay
+    :ensure t
+    :demand t
+    :after corfu
+    :config
+    (corfu-candidate-overlay-mode 1)
+    (keymap-global-set "C-<tab>" 'completion-at-point)
+    (keymap-global-set "C-<iso-lefttab>" 'corfu-candidate-overlay-complete-at-point))
+
+  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
+>>>>>>> 5e7a573 (update configuration)
 
   ;; Optionally:
   (setq nerd-icons-corfu-mapping
         '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+<<<<<<< HEAD
           (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
           ;; You can alternatively specify a function to perform the mapping,
           ;; use this when knowing the exact completion candidate is important.
@@ -323,13 +683,27 @@ Toggling away...
           ;; face property, though.
           (file :fn nerd-icons-icon-for-file :face font-lock-string-face)
           ;; ...
+=======
+  	(boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+  	;; You can alternatively specify a function to perform the mapping,
+  	;; use this when knowing the exact completion candidate is important.
+  	;; Don't pass `:face' if the function already returns string with the
+  	;; face property, though.
+  	(file :fn nerd-icons-icon-for-file :face font-lock-string-face)
+  	;; ...
+>>>>>>> 5e7a573 (update configuration)
           (t :style "cod" :icon "code" :face font-lock-warning-face)))
           ;; If you add an entry for t, the library uses that as fallback.
           ;; The default fallback (when it's not specified) is the ? symbol.
 
   ;; The Custom interface is also supported for tuning the variable above.
 #+end_src
+<<<<<<< HEAD
 **** cape
+=======
+
+*** cape
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package cape
   ;; Bind prefix keymap providing all Cape commands under a mnemonic key.
@@ -340,11 +714,16 @@ Toggling away...
   ;;        ("C-c p h" . cape-history)
   ;;        ("C-c p f" . cape-file)
   ;;        ...)
+<<<<<<< HEAD
   :init
+=======
+  ;;
+>>>>>>> 5e7a573 (update configuration)
   ;; Add to the global default value of `completion-at-point-functions' which is
   ;; used by `completion-at-point'.  The order of the functions matters, the
   ;; first function returning a result wins.  Note that the list of buffer-local
   ;; completion functions takes precedence over the global list.
+<<<<<<< HEAD
   (add-hook 'completion-at-point-functions #'cape-dabbrev)
   (add-hook 'completion-at-point-functions #'cape-file)
   (add-hook 'completion-at-point-functions #'cape-elisp-block)
@@ -447,6 +826,117 @@ Toggling away...
 #+begin_src emacs-lisp
   (defun my/convert-time (&optional DATE TIME ZONE)
     (encode-time (parse-time-string (format "%sT%s%s" (format-time-string "%Y-%m-%d" DATE) TIME ZONE))))
+=======
+  :init
+  (add-hook 'completion-at-point-functions #'cape-dabbrev)
+  (add-hook 'completion-at-point-functions #'cape-file)
+  (add-hook 'completion-at-point-functions #'cape-elisp-block)
+  (add-hook 'completion-at-point-functions #'cape-history))
+#+end_src
+
+** configuring recent files
+#+begin_src emacs-lisp 
+  (use-package recentf
+    :ensure t
+    :config
+    (add-to-list 'recentf-exclude
+                 (recentf-expand-file-name no-littering-var-directory))
+    (add-to-list 'recentf-exclude
+                 (recentf-expand-file-name no-littering-etc-directory))
+    (recentf-mode t))
+#+end_src
+** elscreen
+#+begin_src emacs-lisp 
+  (use-package elscreen
+    :ensure t
+    :hook
+    (emacs-startup . elscreen-start))
+#+end_src
+** golden-ratio
+I like to have my working space automatically resized
+#+begin_src emacs-lisp 
+  (use-package golden-ratio
+    :ensure t
+    :custom
+    (golden-ratio-auto-scale t)
+    :config
+    (add-to-list 'golden-ratio-exclude-modes 'undo-tree-visualizer-mode)
+    (add-to-list 'golden-ratio-exclude-modes 'helpful-mode)
+    (golden-ratio-mode t))
+#+end_src
+** buffer guardian
+#+begin_src emacs-lisp
+  (use-package buffer-guardian
+  :custom
+  ;; When non-nil, include remote files in the auto-save process
+  (buffer-guardian-inhibit-saving-remote-files t)
+
+  ;; When non-nil, buffers visiting nonexistent files are not saved
+  (buffer-guardian-inhibit-saving-nonexistent-files t)
+
+  ;; Save the buffer even if the window change results in the same buffer
+  (buffer-guardian-save-on-same-buffer-window-change t)
+
+  ;; Non-nil to enable verbose mode to log when a buffer is automatically saved
+  (buffer-guardian-verbose nil)
+
+  ;; Pre-save all package-managed buffers before native save commands run
+  ;; Advise `save-some-buffers' to use `buffer-guardian' logic.
+  ;; When non-nil and `buffer-guardian-mode' is active, this intercepts
+  ;; `save-some-buffers' to silently pre-save package-managed buffers before
+  ;; allowing the native command to run normally.
+  (buffer-guardian-override-save-some-buffers nil)
+
+  ;; Save all buffers after N seconds of user idle time. (Disabled by default)
+  ;; (buffer-guardian-save-all-buffers-idle 30)
+
+  ;; Save all buffers every N seconds. (Disabled by default)
+  ;; (buffer-guardian-save-all-buffers-interval (* 60 30))
+
+  :init
+  (buffer-guardian-mode 1))
+#+end_src
+** bufferfile
+#+begin_src emacs-lisp 
+  (use-package bufferfile
+    :commands
+    (bufferfile-copy
+     bufferfile-rename
+     bufferfile-delete)
+    :custom
+    (bufferfile-verbose t)
+    (bufferfile-delete-switch-to 'parent-directory))
+#+end_src
+** emacs in the terminal
+sometimes, I like to use emacs as a tui, so we configure as below.
+
+first, we connect emacs' clipboard to the os' clipboard using clipetty
+#+begin_src emacs-lisp 
+  (use-package clipetty
+    :ensure t
+    :if
+    (not (display-graphic-p))
+    :hook
+    (after-init . global-clipetty-mode))
+#+end_src
+
+then, we enable the kitty keyboard protocol (kkp) support.
+#+begin_src emacs-lisp 
+  (use-package kkp
+    :ensure t
+    :hook
+    (tty-setup . global-kkp-mode))
+#+end_src
+** dashboard + some customisations
+I like to use dashboard with org-agenda. also, I like to sort out my daily tasks in a =daily.org= file.
+
+so first and foremost, because I am chronically lazy, I like my =daily.org= to start up already with the day's entry. that said, I like to configure a time that triggers the start of a new entry.
+#+begin_src emacs-lisp 
+  (defun my/convert-time (&optional DATE TIME ZONE)
+    (encode-time
+     (parse-time-string
+      (format "%sT%s%s" (format-time-string "%Y-%m-%d" DATE) TIME ZONE))))
+>>>>>>> 5e7a573 (update configuration)
 
   (defun my/check-time-is-new-day ()
     (let ((is_night (time-less-p nil (my/convert-time nil "10:00:00" "+09"))))
@@ -454,6 +944,7 @@ Toggling away...
   	(and (not is_night) (time-less-p nil (my/convert-time nil "15:00:00" "+09")))
         (not is_night))))
 #+end_src
+<<<<<<< HEAD
 *** Var dir
 #+begin_src emacs-lisp
   (defvar my/var-dir
@@ -516,11 +1007,35 @@ Toggling away...
     (interactive)
     (select-window (winum-get-window-by-number 2))
     (my/split-window-right)
+=======
+
+now for our =daily.org=
+#+begin_src emacs-lisp 
+  (defun my/goto-or-create-timestamp-header ()
+    (interactive)
+    (with-current-buffer
+        (set-buffer (current-buffer))
+      (when (my/check-time-is-new-day)
+        (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
+  	     (pos (org-find-exact-headline-in-buffer timestamp)))
+  	(if (not pos)
+  	    (progn (goto-char (buffer-size))
+  		   (org-insert-heading nil nil t)
+  		   (insert timestamp)
+  		   (goto-char (buffer-size))
+  		   (org-capture 0 "d"))
+  	  (goto-char pos))
+  	(save-buffer)))))
+
+  (defun my/open-org-daily ()
+    (interactive)
+>>>>>>> 5e7a573 (update configuration)
     (set-buffer
      (get-buffer (find-file (concat org-directory "daily.org"))))
     (when (my/check-time-is-new-day)
       (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
   	   (pos (org-find-exact-headline-in-buffer timestamp)))
+<<<<<<< HEAD
         (unless pos
   	  (org-capture nil "d"))))
     (save-buffer)
@@ -569,6 +1084,54 @@ Toggling away...
     (dashboard-items '((recents . 5)
   			  (bookmarks . 5)
   			  (projects . 5)))
+=======
+        (unless pos (progn
+  		    (goto-char (buffer-size))
+  		    (org-insert-heading nil nil t)
+  		    (insert timestamp)
+  		    (goto-char (buffer-size))
+  		    (org-capture 0 "d")))))
+    (goto-char (buffer-size))
+    (current-buffer))
+
+  (keymap-global-set "C-c f d" #'my/open-org-daily)
+#+end_src
+
+then for org-agenda:
+#+begin_src emacs-lisp 
+  (defun my/open-org-agenda ()
+    (interactive)
+    (split-window-right)
+    (org-agenda nil "n")
+    (current-buffer))
+#+end_src
+
+and then dashboard:
+#+begin_src emacs-lisp
+  (defun my/window-setup ()
+    (interactive)
+    (if (and (fboundp 'server-running-p) 
+             (not (server-running-p)))
+        (server-start))
+    (my/open-org-agenda)
+    (dired-sidebar-toggle-sidebar org-directory)
+    (select-window (previous-window))
+    (current-buffer))
+
+  (use-package dashboard 
+    :ensure t
+    :config
+    (add-hook 'dashboard-after-initialize-hook #'my/window-setup)
+    (dashboard-setup-startup-hook)
+    :custom
+    (dashboard-banner-logo-title "the dashboard")
+    (dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory))
+    (dashboard-center-content t)
+    (dashbaord-vertically-center-content t)
+    (dashboard-items '((recents . 5)
+                       (bookmarks . 5)
+                       (projects . 5)))
+>>>>>>> 5e7a573 (update configuration)
 
     (dashboard-navigation-cycle t)
     (dashboard-display-icons-p t)
@@ -576,24 +1139,36 @@ Toggling away...
     (dashboard-set-heading-icons t)
     (dashboard-set-file-icons t))
 #+end_src
+<<<<<<< HEAD
 ** Multilinguality
 *** Enable 한글
 There is technically a default key binding for this but I like to keep it uniform with my system setting.
 #+begin_src emacs-lisp
+=======
+** multilingual input
+did I mention I speak Korean? /s
+
+but actually, I personally like to keep my =toggle-input-method= keybinding the same as the system setting (which, out of habit, I had it configured to =s-<space>=)
+#+begin_src emacs-lisp 
+>>>>>>> 5e7a573 (update configuration)
   (defun my/toggle-input-method ()
     (interactive)
     (toggle-input-method))
 
+<<<<<<< HEAD
   (keymap-global-set "s-SPC" #'my/toggle-input-method)
 #+end_src
 *** Initialise input method
 So that I don't have to manually initialise it every time
 #+begin_src emacs-lisp
+=======
+>>>>>>> 5e7a573 (update configuration)
   (defun my/initialise-input-method ()
     (interactive)
     (set-input-method 'korean-hangul)
     (toggle-input-method))
 
+<<<<<<< HEAD
   (add-hook 'emacs-startup-hook #'my/initialise-input-method)
 #+end_src
 * For Convenience
@@ -623,10 +1198,34 @@ So that I don't have to manually initialise it every time
     (select-window (split-window-right)))
 
   (defun my/split-window-below ()
+=======
+  (keymap-global-set "s-SPC" #'my/toggle-input-method)
+  (add-hook 'emacs-startup-hook #'my/initialise-input-method)
+#+end_src
+
+** keybindings
+I like to be able to pull up this file whenever I need to so first things first:
+#+begin_src emacs-lisp 
+  (defun my/open-config-file ()
+    (interactive)
+    (get-buffer-create (find-file (expand-file-name "config.org" "~/.emacs.d/"))))
+
+  (keymap-global-set "C-c f p" #'my/open-config-file)
+#+end_src
+
+also, more often than not, when I split a window, I also want the new window as my active window so I instead bind the split window functions to a custom function that also moves my pointer to the new window automatically:
+#+begin_src emacs-lisp 
+  (defun my/split-window-left ()
+    (interactive)
+    (select-window (split-window-right)))
+
+  (defun my/split-window-up ()
+>>>>>>> 5e7a573 (update configuration)
     (interactive)
     (select-window (split-window-below)))
 
   (keymap-global-set "C-x 2" #'my/split-window-below)
+<<<<<<< HEAD
   (keymap-global-set "C-x 3" #'my/split-window-right)
 #+end_src
 *** Move pointer to nth window
@@ -731,10 +1330,261 @@ Honestly better than markdown tbh
     (dolist (face '(window-divider
      		  window-divider-first-pixel
      		  window-divider-last-pixel))
+=======
+  (keymap-global-set "C-x 3" #'my/split-window-left)
+#+end_src
+
+*** rsi begone
+first, we configure vertigo
+#+begin_src emacs-lisp
+  (use-package vertigo
+    :ensure t
+    :config
+    (keymap-global-set "M-n" #'vertigo-jump-down) ;; based on C-n to go to the next line
+    (keymap-global-set "M-p" #'vertigo-jump-up)) ;; based on C-p to go to the previous line
+#+end_src
+
+meow ?
+#+begin_src emacs-lisp 
+  (use-package meow
+    :ensure t
+    :config
+    (defun meow-setup ()
+      (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+      (meow-motion-define-key
+       '("j" . meow-next)
+       '("k" . meow-prev)
+       '("<escape>" . ignore))
+      (meow-leader-define-key
+       ;; Use SPC (0-9) for digit arguments.
+       '("1" . meow-digit-argument)
+       '("2" . meow-digit-argument)
+       '("3" . meow-digit-argument)
+       '("4" . meow-digit-argument)
+       '("5" . meow-digit-argument)
+       '("6" . meow-digit-argument)
+       '("7" . meow-digit-argument)
+       '("8" . meow-digit-argument)
+       '("9" . meow-digit-argument)
+       '("0" . meow-digit-argument)
+       '("/" . meow-keypad-describe-key)
+       '("." . embark-act)
+       '(";" . embark-dwim)
+       '("?" . meow-cheatsheet)
+       '("a" . beginning-of-line)
+       '("e" . end-of-line)
+       '("j" . vertigo-jump-down)
+       '("k" . vertigo-jump-up)
+       '("l" . recenter-top-bottom))
+      (meow-normal-define-key
+       '("0" . meow-expand-0)
+       '("9" . meow-expand-9)
+       '("8" . meow-expand-8)
+       '("7" . meow-expand-7)
+       '("6" . meow-expand-6)
+       '("5" . meow-expand-5)
+       '("4" . meow-expand-4)
+       '("3" . meow-expand-3)
+       '("2" . meow-expand-2)
+       '("1" . meow-expand-1)
+       '("-" . negative-argument)
+       '(";" . meow-reverse)
+       '("," . meow-inner-of-thing)
+       '("." . meow-bounds-of-thing)
+       '("[" . meow-beginning-of-thing)
+       '("]" . meow-end-of-thing)
+       '("a" . meow-append)
+       '("A" . meow-open-below)
+       '("b" . meow-back-word)
+       '("B" . meow-back-symbol)
+       '("c" . meow-change)
+       '("d" . meow-delete)
+       '("D" . meow-backward-delete)
+       '("e" . meow-next-word)
+       '("E" . meow-next-symbol)
+       '("f" . meow-find)
+       '("g" . meow-cancel-selection)
+       '("G" . meow-grab)
+       '("h" . meow-left)
+       '("H" . meow-left-expand)
+       '("i" . meow-insert)
+       '("I" . meow-open-above)
+       '("j" . meow-next)
+       '("J" . meow-next-expand)
+       '("k" . meow-prev)
+       '("K" . meow-prev-expand)
+       '("l" . meow-right)
+       '("L" . meow-right-expand)
+       '("m" . meow-join)
+       '("n" . meow-search)
+       '("o" . meow-block)
+       '("O" . meow-to-block)
+       '("p" . meow-yank)
+       '("q" . meow-quit)
+       '("Q" . meow-goto-line)
+       '("r" . meow-replace)
+       '("R" . meow-swap-grab)
+       '("s" . meow-kill)
+       '("t" . meow-till)
+       '("u" . meow-undo)
+       '("U" . meow-undo-in-selection)
+       '("v" . meow-visit)
+       '("w" . meow-mark-word)
+       '("W" . meow-mark-symbol)
+       '("x" . meow-line)
+       '("X" . meow-goto-line)
+       '("y" . meow-save)
+       '("Y" . meow-sync-grab)
+       '("z" . meow-pop-selection)
+       '("'" . repeat)
+       '("<escape>" . ignore)))
+    (meow-setup)
+    (meow-global-mode 1))
+
+#+end_src
+
+** helpful
+a more helpful reference
+#+begin_src emacs-lisp
+  (use-package helpful
+    :ensure t
+    :init
+    (keymap-global-set "C-h f" #'helpful-callable)
+    (keymap-global-set "C-h v" #'helpful-variable)
+    (keymap-global-set "C-h k" #'helpful-key)
+    (keymap-global-set "C-h x" #'helpful-command)
+
+    (keymap-global-set "C-c C-d" #'helpful-at-point)
+    (keymap-global-set "C-h F" #'helpful-function))
+#+end_src
+
+** window management
+I like to use ace-window and switchy-window
+#+begin_src emacs-lisp 
+  (use-package ace-window
+    :ensure t
+    :demand t
+    :custom
+    (aw-background nil)
+    :config
+    (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+    (defvar aw-dispatch-alist
+      '((?x aw-delete-window "Delete Window")
+        (?m aw-swap-window "Swap Windows")
+        (?M aw-move-window "Move Window")
+        (?c aw-copy-window "Copy Window")
+        (?j aw-switch-buffer-in-window "Select Buffer")
+        (?n aw-flip-window)
+        (?u aw-switch-buffer-other-window "Switch Buffer Other Window")
+        (?c aw-split-window-fair "Split Fair Window")
+        (?v aw-split-window-vert "Split Vert Window")
+        (?b aw-split-window-horz "Split Horz Window")
+        (?o delete-other-windows "Delete Other Windows")
+        (?? aw-show-dispatch-help))
+      "List of actions for `aw-dispatch-default'.")
+    (ace-window-display-mode)
+    (keymap-global-set "M-o" 'ace-window))
+
+  (use-package switchy-window
+    :ensure t
+    :demand t
+    :custom
+    (switchy-window-delay 1.5)
+    :bind
+    (:map switchy-window-minor-mode-map
+          ("<remap> <other-window>" . switchy-window))
+    :init    
+    (switchy-window-minor-mode))
+#+end_src
+
+** org-mode
+now let's configure org mode
+#+begin_src emacs-lisp 
+  (straight-use-package 'org)
+  (with-eval-after-load "org"
+    (setq org-agenda-start-on-weekday 0)
+    (setq org-directory (file-truename "~/org/"))
+    (setq org-startup-indented t)
+    (setq org-M-RET-may-split-line '((item . nil)))
+    (setq org-support-shift-select t)
+    (setq org-return-follows-link t)
+    (setq org-refile-allow-creating-parent-nodes 'confirm)
+    (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
+    
+    (keymap-global-set "C-c c" #'org-capture)
+    (keymap-global-set "C-c l" #'org-store-link-props)
+    (keymap-global-set "C-c a" #'org-agenda)
+
+    (unless (display-graphic-p)
+      (keymap-unset org-mode-map "C-c ,")
+      (keymap-set org-mode-map "C-c , p" #'org-priority)
+      (keymap-set org-mode-map "C-c , i" #'org-insert-structure-template)))
+#+end_src
+
+then, we make org mode aesthetically pleasing.
+#+begin_src emacs-lisp
+  ;; org-ibullets for nice-looking bullets
+  (use-package org-ibullets
+    :ensure t
+    :commands org-ibullets-mode
+    :straight (org-ibullets
+               :type git
+               :host github
+               :repo "jamescherti/org-ibullets.el")
+    :hook
+    (org-mode . org-ibullets-mode))
+
+  ;; org-modern-indent because org-modern doesn't work with org-indent-mode
+  (use-package org-modern-indent
+    :ensure nil
+    :straight (org-modern-indent
+               :type git
+               :host github
+               :repo "jdtsmith/org-modern-indent")
+    :config
+    (add-hook 'org-mode-hook #'org-modern-indent-mode 90))
+
+  ;; org-modern
+  (use-package org-modern
+    :ensure t
+    :custom    
+    (org-modern-hide-stars nil)
+    (org-modern-star 'replace)
+    (org-modern-block-fringe 2)
+    (org-modern-todo nil)
+    (org-modern-tag nil)
+    (org-modern-block-name t)
+    (org-modern-timestamp nil)
+    (org-modern-progress nil)
+
+    (org-auto-align-tags nil)
+    (org-tags-column 0)
+    (org-catch-invisible-edits 'show-and-error)
+    (org-special-ctrl-a/e t)
+    (org-insert-heading-respect-content t)
+
+    (org-hide-emphasis-markers t)
+    (org-pretty-entities t)
+    (org-pretty-entities-include-sub-superscripts nil)
+    (org-agenda-tags-column 0)
+    (org-ellipsis "...")
+
+    :config
+    (modify-all-frames-parameters '((right-divider-width . 40)
+                                    (internal-border-width . 30)))
+
+    (dolist (face '(window-divider
+                    window-divider-first-pixel
+                    window-divider-last-pixel))
+>>>>>>> 5e7a573 (update configuration)
       (face-spec-reset-face face)
       (set-face-foreground face (face-attribute 'default :background)))
     (set-face-background 'fringe (face-attribute 'default :background))
 
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 5e7a573 (update configuration)
     (defun my/org-mode-level-font-size ()
       (set-face-attribute 'org-level-4 nil :inherit 'outline-4 :height 1.0)      
       (set-face-attribute 'org-level-3 nil :inherit 'outline-3 :height 1.1)      
@@ -743,6 +1593,7 @@ Honestly better than markdown tbh
       (set-face-attribute 'org-document-title nil :inherit 'outline-1 :height 1.4 :underline nil))
 
     (my/org-mode-level-font-size)
+<<<<<<< HEAD
     
     (setq
      ;; Edit settings
@@ -812,6 +1663,38 @@ This drove me mad the first time I used org-mode
 #+end_src
 *** Protocol capture to reading list
 #+begin_src emacs-lisp
+=======
+    (global-org-modern-mode))
+
+  ;; additionally, since we enabled org-hide-emphasis-markers, we use org-appear to toggle viewing them when our pointer moves to said emphasis markers.
+  (use-package org-appear
+    :ensure t
+    :hook
+    (org-mode . org-appear-mode))
+#+end_src
+
+*** org-capture and org-protocol
+first, we set up our capture templates
+#+begin_src emacs-lisp 
+  (setq org-capture-templates
+        '(("m" "meeting" entry (file "meeting.org")
+  	 "* %t \n ** Discussion %? \n** Tasks \n")
+  	("i" "inbox" entry (file "inbox.org")
+  	 "* %u \n ** %?")
+  	("p" "capture" entry (file "capture-inbox.org")
+  	 "* %:annotation %u\n %i\n%?")
+  	("r" "weekly-report" entry (file "weekly-report.org")
+  	 "* %^{PROMPT}u \n ** 이번 주에 한 일\n%? \n** 다음 주에 할 일\n** 도움이 필요하거나 공유할 사항\n")
+  	("d" "daily-note" entry (file "daily.org")
+"* %u \n** Tasks [/] \n #+CATEGORY: Task %?\n** Log \n** Notes"
+  	 :immediate-finish t)))
+#+end_src
+
+I have two protocols: one for 'bookmarking' papers I find on the internet, and another to save bibtex references (because that's one of the more cumbersome parts of writing a paper).
+
+#+name: org-capture to reading list protocol
+#+begin_src emacs-lisp 
+>>>>>>> 5e7a573 (update configuration)
   (defun my/archive-paper (result)
     (message "archive-paper called with: %S" result)
     (my/save-to-ref-bib result)
@@ -843,6 +1726,7 @@ This drove me mad the first time I used org-mode
       (save-buffer))
     nil)
 #+end_src
+<<<<<<< HEAD
 *** Capture templates
 #+begin_src emacs-lisp
   (setq org-capture-templates
@@ -861,6 +1745,33 @@ This drove me mad the first time I used org-mode
 *** Custom protocols
 
 #+begin_src emacs-lisp
+=======
+
+#+name: org-capture to bibtex
+#+begin_src emacs-lisp 
+  (defun my/save-to-ref-bib (result)
+    (save-window-excursion
+      (find-file (concat org-directory "references.bib"))
+      (goto-char (point-max))
+      (let* ((citebib (plist-get result :citebib))
+  	     (title (plist-get result :title))
+  	     (fname (plist-get result :fname))
+  	     (abstract (plist-get result :abstract))
+  	     (url (plist-get result :url))
+  	     (download_path (concat "~/Downloads/" fname))
+  	     (save_path (concat "~/Documents/papers/" fname)))
+  	(unless (bibtex-search-entry title)
+  	  (goto-char (point-max))
+  	  (insert citebib)
+  	  (shell-command (concat "mv " download_path " " save_path))
+  	  (bibtex-set-field "abstract" abstract)
+  	  (bibtex-set-field "file" save_path))
+  	(save-buffer))))
+#+end_src
+
+then, we setup our org-protocol alist
+#+begin_src emacs-lisp 
+>>>>>>> 5e7a573 (update configuration)
   (setq org-protocol-protocol-alist
         '(("archive papers"
   	 :protocol "archive-papers"
@@ -869,6 +1780,7 @@ This drove me mad the first time I used org-mode
   	 :protocol "save-to-ref-bib"
   	 :function my/save-to-ref-bib)))
 #+end_src
+<<<<<<< HEAD
 ** Custom org-links
 *** Save Github repo links
 #+begin_src emacs-lisp
@@ -1112,10 +2024,228 @@ This drove me mad the first time I used org-mode
 #+end_src
 ** org-gcal
 #+begin_src emacs-lisp
+=======
+
+*** org-links
+I have four custom links (three for repo-type sites and one for citations).
+1. github
+   #+begin_src emacs-lisp 
+          (defun my/gh-open (link _)
+       (browse-url (my/gh-expand-link link)))
+
+     (defun my/gh-expand-link (link)
+       (if (string-search "#" link)
+           (progn (if (string-search ":#" link)
+     		 (apply #'format "https://github.com/%s/pull/%s" (my/gh-parse-link link))
+     	       (apply #'format "https://github.com/%s/issues/%s" (my/gh-parse-link link))))
+         (if (string-search ":" (string-remove-prefix "gh:" link))
+     	(apply #'format "https://github.com/%s/tree/%s" (my/gh-parse-link link))
+           (format "https://github.com/%s" link))))
+
+     (defun my/gh-export (link description backend info)
+       (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+           (let ((link (org-element-create
+     		   'link (list :type "https"
+     			       :path (my/gh-expand-link link)))))
+     	(funcall transcode-link link desc info))
+         (concat "gh:" link)))
+
+     (defun my/get-sep (link)
+       (if (string-search "#" link)
+           (if (string-search ":#" link)
+     	  ":#" "#")
+         ":"))
+
+     (defun my/get-entry-type (link)
+       (if (string= (my/get-sep link) ":#")
+           "pr"
+         "issue"))
+
+     (defun my/gh-parse-link (link) 
+       (let ((parts (string-split (string-remove-prefix "gh:" link) (my/get-sep link) t)))
+         parts))
+
+     (defun my/gh-link-description (link description)
+       (or description
+           (if (string-search "#" link)
+     	  (progn (let* ((repo (nth 0 (my/gh-parse-link link)))
+     			(id (nth 1 (my/gh-parse-link link)))
+     			(entry (my/get-entry-type link)))
+     		   (format "%s: %s" (string-replace ":#" "#" (string-remove-prefix "gh:" link)) (my/gh-get-entry-title repo entry id))))
+     	(if (string-search ":" (string-remove-prefix "gh:" link))
+     	    (string-remove-prefix "gh:" link)
+     	  link))))
+
+     (defun my/gh-get-entry-title (repo entry id)
+       (let ((cmd (format "gh %s view %s --repo %s --json title"
+     		     (shell-quote-argument entry)
+     		     (shell-quote-argument id)
+     		     (shell-quote-argument repo))))
+         (alist-get 'title (json-parse-string (shell-command-to-string cmd) :object-type 'alist))))
+       
+     (defun my/gh-store-link (link &optional description)
+       (org-link-store-props
+        :type "gh"
+        :link (my/gh-expand-link link)
+        :description (my/gh-link-description link description)))
+
+     (org-link-set-parameters "gh"
+     			 :follow #'my/gh-open
+     			 :export #'my/gh-export
+     			 :store-link #'my/gh-store-link
+     			 :insert-description #'my/gh-link-description)
+     
+   #+end_src
+   
+2. huggingface
+   #+begin_src emacs-lisp 
+          (defun hf-open (repo &optional repo-type)
+       (interactive
+        (list (completing-read "Choose repo type: " '("model" "dataset"))))
+       (browse-url (hf-expand-link repo repo-type)))
+
+     (defun hf-expand-link (repo &optional repo-type)
+       (if (string= repo-type "dataset")
+           (format "https://huggingface.co/datasets/%s" repo)
+         (format "https://huggingface/co/%s" repo)))
+
+     (defun hf-export (repo description backend info &optional repo-type)
+       (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+           (let ((link (org-element-create
+     		   'link (list :type "https"
+     			       :path (hf-expand-link repo repo-type)))))
+     	(funcall transcode-link link desc info))
+         (concat "hf:" link)))
+
+     (defun hf-description (repo &optional description)
+       (or description repo))
+
+     (defun hf-store-link (repo &optional description repo-type)
+       (org-link-store-props
+        :type "hf"
+        :link (hf-expand-link repo repo-type)
+        :description description))
+
+     (org-link-set-parameters "hf"
+     			 :follow #'hf-open
+     			 :export #'hf-export
+     			 :insert-description #'hf-description
+     			 :store-link #'hf-store-link)
+   #+end_src
+
+3. other git-based repos
+   #+begin_src emacs-lisp 
+          (defun my/repo-open (link _)
+       (browse-url (my/repo-expand-link link)))
+
+     (setq repo-list '("codeberg.org"))
+
+     (defun my/repo-domain ()
+       (interactive
+        (let ((repo-type (completing-read "Repo domain: " repo-list)))
+          (when (not (member repo-type repo-list))
+            (add-to-list 'repo-list (list repo-type)))
+          repo-type)))
+
+     (defun my/repo-expand-link (link)
+       (interactive "r")
+       (let ((domain (my/repo-domain)))
+         (if (string-search ":" (string-remove-prefix "repo:" link))
+     	(apply #'format (concat "https://" domain "/%s/tree/%s") (my/repo-parse-link link))
+           (format "https://%s/%s" domain link))))
+       
+     (defun my/repo-export (link description backend info)
+       (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+           (let ((link (org-element-create
+     		   'link (list :type "https"
+     			       :path (my/repo-expand-link link)))))
+     	(funcall transcode-link link desc info))
+         (concat "repo:" link)))
+
+     (defun my/get-sep (link)
+       (if (string-search "#" link)
+           (if (string-search ":#" link)
+     	  ":#" "#")
+         ":"))
+
+     (defun my/get-entry-type (link)
+       (if (string= (my/get-sep link) ":#")
+           "pr"
+         "issue"))
+
+     (defun my/repo-parse-link (link) 
+       (let ((parts (string-split (string-remove-prefix "repo:" link) (my/get-sep link) t)))
+         parts))
+
+     (defun my/repo-link-description (link description)
+       (or description
+           (if (string-search ":" (string-remove-prefix "repo:" link))
+     	  (string-remove-prefix "repo:" link)
+     	link)))
+
+     (defun my/repo-store-link (link &optional description)
+       (org-link-store-props
+        :type "repo"
+        :link (my/repo-expand-link link)
+        :description (my/repo-link-description link description)))
+
+     (org-link-set-parameters "repo"
+     			 :follow #'my/repo-open
+     			 :export #'my/repo-export
+     			 :store-link #'my/repo-store-link
+     			 :insert-description #'my/repo-link-description)
+   #+end_src
+   
+4. citations
+   #+begin_src emacs-lisp 
+          (defun my/ref-link--open-link (link _)
+       (org-link-open-from-string link))
+
+     (defun my/ref-link--parse-id (link)
+       (let* ((id (string-remove-suffix "/" link))
+     	 (id (car (last (split-string id "/"))))
+     	 (id (string-remove-suffix ".pdf" id)))
+         id))
+
+     (defun my/ref-link--export-link (link description backend info)
+       (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+           (let ((link (org-element-create
+     		   'link (list :type "https"
+     			       :path link))))
+     	(funcall transcode-link link desc info))
+         (concat "ref:" (my/ref-link--parse-id link))))
+
+     (defun my/ref-link--insert-description (link description)
+       (or description
+           (let ((id (my/ref-link--parse-id link)))
+     	(format "ref:%s" id))))
+
+     (defun my/ref-link--store-link (link &optional description)
+       (org-link-store-props
+        :type "ref"
+        :link link
+        :description (my/ref-link--insert-description link description)))
+
+     (org-link-set-parameters "ref"
+     			 :follow #'my/ref-link--open-link
+     			 :export #'my/ref-link--export-link
+     			 :store-link #'my/ref-link--store-link
+     			 :insert-description #'my/ref-link--insert-description)
+     
+   #+end_src
+
+*** org-gcal
+google calendar integration
+#+begin_src emacs-lisp 
+>>>>>>> 5e7a573 (update configuration)
   (setq org-gcal-client-id (auth-source-pick-first-password :host "org-gcal"
   							    :user "dania.moriazi01@khu.ac.kr^id"))
   (setq org-gcal-client-secret (auth-source-pick-first-password :host "org-gcal"
   							      :user "dania.moriazi01@khu.ac.kr^secret"))
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5e7a573 (update configuration)
   (use-package org-gcal
     :ensure t
     :demand t
@@ -1123,6 +2253,7 @@ This drove me mad the first time I used org-mode
     :config
     (setq org-gcal-fetch-file-alist '(("dania.moriazi01@khu.ac.kr" . "/home/dania/org/calendar.org"))))
 #+end_src
+<<<<<<< HEAD
 * Emacs as an IDE
 ** Language support
 *** Org Babel
@@ -1133,6 +2264,18 @@ This drove me mad the first time I used org-mode
        (emacs-lisp . t)
        (org . t)
        (latex . t)))
+=======
+
+*** org-babel languages
+because literate programming.
+#+begin_src emacs-lisp
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((python . t)
+     (emacs-lisp . t)
+     (org . t)
+     (latex . t)))
+>>>>>>> 5e7a573 (update configuration)
 
   (defun do-org-confirm-babel-evaluations (lang body)
     (not
@@ -1141,7 +2284,30 @@ This drove me mad the first time I used org-mode
       (string= lang "calc"))))
   (setq-local org-confirm-babel-evaluate 'do-org-confirm-babel-evaluations)
 #+end_src
+<<<<<<< HEAD
 *** Treesit
+=======
+
+*** org-projectile
+now known as org-capture-project
+#+begin_src emacs-lisp
+  (use-package org-project-capture
+    :ensure t
+    :bind
+    (("C-c n p" . org-project-capture-project-todo-completing-read))
+    :config
+    (progn
+      (setq org-project-capture-backend
+            (make-instance 'org-project-capture-projectile-backend))
+      (setq org-project-capture-projects-file (expand-file-name "projects.org" org-directory))
+      (org-project-capture-single-file)))
+#+end_src
+
+** emacs as an ide
+first, we configure the programming languages we want to use. I primarily use python but sometimes I use docker as well.
+
+the most important thing is tree-sitter.
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package treesit-auto
     :ensure t
@@ -1180,6 +2346,7 @@ This drove me mad the first time I used org-mode
   (use-package tree-sitter-langs
     :ensure t
     :after tree-sitter
+<<<<<<< HEAD
     ;; :custom
     ;; (major-mode-remap-alist
     ;;   '((python-mode . python-ts-mode)
@@ -1190,6 +2357,8 @@ This drove me mad the first time I used org-mode
     ;;     (ts-mode . typescript-ts-mode)
     ;;     (c++-mode . c++-ts-mode)
     ;;     (ruby-mode . ruby-ts-mode)))
+=======
+>>>>>>> 5e7a573 (update configuration)
     :config
     (puthash 'python-ts-mode 'python tree-sitter-major-mode-language-table)
     (puthash 'c++-ts-mode 'cpp tree-sitter-major-mode-language-table)
@@ -1197,6 +2366,7 @@ This drove me mad the first time I used org-mode
     (puthash 'js-ts-mode 'js tree-sitter-major-mode-language-table)
     (puthash 'typescript-ts-mode 'ts tree-sitter-major-mode-language-table)
     (puthash 'ruby-ts-mode 'ruby tree-sitter-major-mode-language-table))
+<<<<<<< HEAD
 #+end_src
 *** Python
 **** Python env: Mamba
@@ -1219,6 +2389,43 @@ I use mamba as my main python interpreter
 **** Python for emacs
 #+begin_src emacs-lisp
   (use-package python
+=======
+
+#+end_src
+
+now, we can configure each programming language individually.
+
+*** python
+I use mamba as my primary python environment.
+#+begin_src emacs-lisp 
+  (use-package conda-projectile
+    :after conda)
+    
+  (use-package anaconda-mode
+    :ensure t
+    :after conda
+    :hook
+    (python-mode . anaconda-mode)
+    (python-ts-mode . anaconda-mode)
+    (python-mode . anaconda-eldoc-mode)
+    (python-ts-mode . anaconda-eldoc-mode))
+
+   (use-package conda
+     :ensure t
+     :config
+     (conda-env-initialize-interactive-shells)
+     (conda-env-initialize-eshell)
+     (conda-env-autoactivate-mode 1)
+
+     (add-hook 'find-file-hook (lambda ()
+                                 (when (bound-and-true-p conda-project-env-path)
+                                   (conda-env-activate-for-buffer)))))
+#+end_src
+
+then we configure emacs' python-mode.
+#+begin_src emacs-lisp
+    (use-package python
+>>>>>>> 5e7a573 (update configuration)
     :ensure nil
     :after tree-sitter
     :mode
@@ -1226,8 +2433,13 @@ I use mamba as my main python interpreter
      ("\\.pyi\\'" . python-ts-mode)
      ("\\.pyw\\'" . python-ts-mode))
     :hook
+<<<<<<< HEAD
     (python-mode . eglot-ensure)
     (python-ts-mode . eglot-ensure)
+=======
+    (python-mode . lsp-deferred)
+    (python-ts-mode . lsp-deferred)
+>>>>>>> 5e7a573 (update configuration)
     (python-mode . subword-mode)
     (python-ts-mode . subword-mode)
     (python-ts-mode . python-mode)
@@ -1254,9 +2466,16 @@ I use mamba as my main python interpreter
         ;; No tree-sitter, do nothing or fallback to another mode.
         ...))))
 #+end_src
+<<<<<<< HEAD
 *** IPython
 #+begin_src emacs-lisp
   (use-package code-cells
+=======
+
+tbh, I never really liked using jupyter lab so we use =code-cells=.
+#+begin_src emacs-lisp
+    (use-package code-cells
+>>>>>>> 5e7a573 (update configuration)
     :ensure t
     :hook
     (code-cells-mode . run-python)
@@ -1266,7 +2485,14 @@ I use mamba as my main python interpreter
   	("M-p" . code-cells-backward-cell)
   	("M-n" . code-cells-forward-cell)
   	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
+<<<<<<< HEAD
     :config
+=======
+    
+    :config
+    (add-to-list 'code-cells-convert-ipynb-style '("jupytext" "to" "py:percent"))
+    
+>>>>>>> 5e7a573 (update configuration)
     (defun my/code-cells-new-cell ()
       (interactive)
       (newline 2)
@@ -1285,19 +2511,37 @@ I use mamba as my main python interpreter
     
     (add-hook 'python-mode-hook 'code-cells-mode-maybe))
 #+end_src
+<<<<<<< HEAD
 *** Docker
 #+begin_src emacs-lisp
+=======
+
+*** docker
+for the rare occasion I do use docker:
+#+begin_src emacs-lisp 
+>>>>>>> 5e7a573 (update configuration)
   (use-package dockerfile-ts-mode
     :ensure nil
     :defer t
     :mode
     (("Dockerfile\\'" . dockerfile-ts-mode)
      ("\\.dockerfile\\'" . dockerfile-ts-mode))
+<<<<<<< HEAD
     :hook (dockerfile-ts-mode . eglot-ensure))
 #+end_src
 *** Typescript & Javascript
 #+begin_src emacs-lisp
   (use-package typescript-ts-mode
+=======
+    :hook
+    (dockerfile-ts-mode . lsp-deferred))
+#+end_src
+
+*** typescript and javascript
+I rarely use these two but when I do.
+#+begin_src emacs-lisp
+    (use-package typescript-ts-mode
+>>>>>>> 5e7a573 (update configuration)
     :ensure nil
     :defer t
     :mode
@@ -1305,7 +2549,11 @@ I use mamba as my main python interpreter
      ("\\.mts\\'" . typescript-ts-mode)
      ("\\.cts\\'" . typescript-ts-mode))
     :hook
+<<<<<<< HEAD
     (typescript-ts-mode . eglot-ensure)
+=======
+    (typescript-ts-mode . lsp-deferred)
+>>>>>>> 5e7a573 (update configuration)
     (typescript-ts-mode . subword-mode))
 
   (use-package tsx-ts-mode
@@ -1315,7 +2563,11 @@ I use mamba as my main python interpreter
     (("\\.tsx\\'" . tsx-ts-mode)
      ("\\.jsx\\'" . tsx-ts-mode))
     :hook
+<<<<<<< HEAD
     (tsx-ts-mode . eglot-ensure)
+=======
+    (tsx-ts-mode . lsp-deferred)
+>>>>>>> 5e7a573 (update configuration)
     (tsx-ts-mode . subword-mode))
 
   (use-package js-ts-mode
@@ -1326,6 +2578,7 @@ I use mamba as my main python interpreter
      ("\\.mjs\\'" . js-ts-mode)
      ("\\.cjs\\'" . js-ts-mode))
     :hook
+<<<<<<< HEAD
     (js-ts-mode . eglot-ensure)
     (js-ts-mode . subword-mode))
 #+end_src
@@ -1378,6 +2631,134 @@ I use mamba as my main python interpreter
   (keymap-global-set "C-c t t" #'treemacs)
 #+end_src
 *** Git
+=======
+    (js-ts-mode . lsp-deferred)
+    (js-ts-mode . subword-mode))
+#+end_src
+
+*** language server protocol
+I use lsp-mode for lsp
+#+begin_src emacs-lisp
+  (use-package lsp-mode
+    :ensure t
+    :init
+    (setq lsp-keymap-prefix "C-c l")
+    :hook
+    (prog-mode . lsp-deferred)
+    (sh-mode . lsp-deferred)
+    (bash-ts-mode . lsp-deferred)
+    (lsp-mode . lsp-enable-which-key-integration)
+    :commands lsp)
+
+  (use-package lsp-ui
+    :ensure t
+    :after lsp-mode
+    :commands
+    lsp-ui-mode
+    :hook
+    (lsp-mode . lsp-ui-mode)
+    :config
+    (lsp-ui-doc-mode 1))
+
+  (use-package lsp-treemacs
+    :ensure t
+    :after lsp-mode
+    :commands
+    lsp-treemacs-errors-list
+    :hook
+    (lsp-mode . lsp-treemacs-sync-mode))
+#+end_src
+
+*** misc-ish
+meow pt. 2?
+#+begin_src emacs-lisp
+  (use-package meow-tree-sitter
+    :ensure t
+    :after meow
+    :init
+    (meow-tree-sitter-register-defaults)
+    :config
+    (meow-normal-define-key
+     '("o" . meow-tree-sitter-node)))
+#+end_src
+
+then we configure treemacs.
+#+begin_src emacs-lisp
+  (use-package treemacs-nerd-icons
+    :ensure t
+    :if (display-graphic-p)
+    :defer nil)
+
+  (use-package treemacs
+    :ensure t
+    :demand t
+    :init
+    (if (display-graphic-p)
+        (treemacs-load-theme "nerd-icons"))
+    (defvar treemacs-current-directory (treemacs--current-directory-project-function))
+    (defun my/treemacs-load-dir-locals ()
+      (interactive)
+      (let ((dir (treemacs--current-directory-project-function)))
+        (dir-locals-read-from-dir dir)))
+    :hook
+    (treemacs-mode . treemacs-peek-mode)
+    (treemacs-mode . (lambda () (dired-sidebar-hide-sidebar)))
+    :custom
+    (treemacs-display-in-side-window nil)
+    :config
+    (treemacs-projectile)
+    (keymap-global-set "C-c t o" #'treemacs-select-window)
+    (keymap-global-set "C-c t t" #'treemacs)
+    
+    (add-hook 'treemacs-mode-hook #'my/treemacs-load-dir-locals
+              50)
+    (add-hook 'treemacs-mode-hook (lambda () (dired treemacs-current-directory)) 60))
+#+end_src
+
+I like to use undo-tree (and you will see why I put this under the ide section).
+#+begin_src emacs-lisp
+  (use-package undo-tree
+    :ensure t
+    :demand t
+    :config
+    (keymap-global-set "C-x u" #'my/undo-tree-visualize)
+    (global-undo-tree-mode))
+
+    (defun my/undo-tree-visualize ()
+    (interactive)
+    (if (and (buffer-file-name) (treemacs-get-local-window))
+        (progn
+          (let ((original-buffer (window-buffer (other-window-for-scrolling))))
+            (unless undo-tree-mode
+              (undo-tree-mode))
+            (undo-tree-visualize)
+            (switch-to-buffer (get-buffer original-buffer)))
+          (treemacs-select-window)
+          (my/split-window-below)
+          (switch-to-buffer
+           (get-buffer undo-tree-visualizer-buffer-name)))
+      (undo-tree-visualize)))
+
+  (defun my/undo-tree-visualizer-quit ()
+    (interactive)
+    (let* ((win-list (window-at-side-list)))
+      (undo-tree-visualizer-quit)
+      (dolist (win win-list)
+        (when
+            (string= (buffer-name (window-buffer win)) undo-tree-visualizer-buffer-name)
+          (delete-window win)))))
+
+  (defun my/refresh-undo-tree-visualizer (buffer)
+    (my/undo-tree-visualizer-quit)
+    (my/undo-tree-visualize)
+    (get-buffer buffer)
+    (other-window 1))
+
+  (add-hook 'treemacs-after-visit-functions #'my/refresh-undo-tree-visualizer)
+#+end_src
+
+magit is probably one of the best packages there is.
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package transient
     :ensure t)
@@ -1403,8 +2784,24 @@ I use mamba as my main python interpreter
     :pin melpa
     :after magit
     :demand t)
+<<<<<<< HEAD
 #+end_src
 *** Flycheck
+=======
+
+  (use-package diff-hl
+    :ensure t
+    :demand t
+    :config
+    (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+    (add-hook 'diff-hl-mode-on-hook
+          (lambda ()
+            (unless (display-graphic-p)
+              (diff-hl-margin-local-mode)))))
+#+end_src
+
+I like to use flycheck for on-the-fly syntax checking.
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package flycheck
     :ensure t
@@ -1417,18 +2814,36 @@ I use mamba as my main python interpreter
   (use-package flycheck-posframe
     :ensure t
     :after flycheck
+<<<<<<< HEAD
     :if (display-graphic-p)
+=======
+    :if (or (featurep 'tty-child-frames) (display-graphic-p))
+>>>>>>> 5e7a573 (update configuration)
     :init
     (setq flycheck-posframe-border-width 16)
     :config
     (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode)
     (flycheck-posframe-configure-pretty-defaults))
 #+end_src
+<<<<<<< HEAD
 *** eldocs
 #+begin_src emacs-lisp
   (use-package eldoc-box
   :ensure t
   :if (display-graphic-p)
+=======
+
+and also eldoc and eldoc-box
+ #+begin_src emacs-lisp
+  (use-package eldoc
+    :ensure t
+    :config
+    (global-eldoc-mode))
+
+  (use-package eldoc-box
+  :ensure t
+  :if (or (featurep 'tty-child-frames) (display-graphic-p))
+>>>>>>> 5e7a573 (update configuration)
   :bind
   (("C-<prior>" . eldoc-box-scroll-down)
    ("C-<next>"  . eldoc-box-scroll-up))
@@ -1442,15 +2857,24 @@ I use mamba as my main python interpreter
     (pcase-let ((`(,_left ,right ,top) eldoc-box-offset))
       (cons (- (frame-outer-width) width right)
   	  top)))
+<<<<<<< HEAD
   
   (setq eldoc-box-position-function #'my/eldoc-box--always-frame-top-right))
 #+end_src
 *** codemetrics
+=======
+
+  (setq eldoc-box-position-function #'my/eldoc-box--always-frame-top-right))
+ #+end_src
+
+as a way to improve my code writing, I use codemetrics to evaluate my code complexity (with the aim of reducing the complexity)
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package codemetrics
     :ensure t
     :straight (codemetrics :type git :host github :repo "jcs-elpa/codemetrics")
     :hook
+<<<<<<< HEAD
     (eglot-server-initialized . codemetrics-mode))
 #+end_src
 * EAF
@@ -1496,6 +2920,86 @@ Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_resear
 #+end_src
 *** Load =elfeed-score=
 #+begin_src emacs-lisp
+=======
+    (eglot-server-initialized . codemetrics-mode)
+    (lsp-mode . codemetrics-mode))
+#+end_src
+
+I also like to use combobulate to check my code structure.
+#+begin_src emacs-lisp
+  (use-package combobulate
+    :ensure t
+    :demand t
+    :straight (combobulate :type git :host github :repo "mickeynp/combobulate")
+    :custom
+    (combobulate-key-prefix "C-c u")
+    :hook
+    ((prog-mode . combobulate-mode)))
+#+end_src
+
+also dtrt-indent for better indentation (because without it, I would have no way to automatically organise indentation in python)
+#+begin_src emacs-lisp
+  (use-package dtrt-indent
+    :ensure t
+    :demand t
+    :custom
+    (dtrt-indent-global-mode t))
+#+end_src
+
+and then finally, yasnippet for templates.
+#+begin_src emacs-lisp
+  (use-package yasnippet
+    :ensure t
+    :demand t
+    :custom
+    (yas-snippet-dirs '("~/.emacs.d/snippets"))
+    :hook
+    (prog-mode . yas-minor-mode)
+    (org-mode . yas-minor-mode)
+    :config
+    (yas-reload-all))
+
+  (use-package yasnippet-snippets
+    :ensure t
+    :demand t
+    :after yasnippet)
+#+end_src
+
+** emacs application framework
+for as long as I can just stay in one application window, I will.
+#+begin_src emacs-lisp
+  (use-package eaf
+    :load-path "~/.emacs.d/site-lisp/emacs-application-framework"
+    :defer t
+    :custom
+    ;; See https://github.com/emacs-eaf/emacs-application-framework/wiki/Customization
+    (setq eaf-apps-to-install '("eaf-browser" "eaf-pdf-viewer"))
+    (eaf-browser-continue-where-left-off t)
+    (eaf-browser-enable-adblocker t)
+    (browse-url-browser-function 'eaf-open-browser)
+    :config
+    (defalias 'browse-web #'eaf-open-browser)) ;; unbind, see more in the Wiki
+
+  (use-package eaf-browser
+    :defer t
+    :config
+    (eaf-bind-key nil "M-q" eaf-browser-keybinding))
+  (use-package eaf-pdf-viewer
+    :defer t
+    :config
+    (eaf-bind-key scroll_up "C-n" eaf-pdf-viewer-keybinding)
+    (eaf-bind-key scroll_down "C-p" eaf-pdf-viewer-keybinding))
+#+end_src
+
+** bibliography management ft. elfeed
+credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_research_workflow/][blog post]] I used for this.
+
+we first load arxiv-mode, elfeed and elfeed-score
+#+begin_src emacs-lisp
+  (use-package arxiv-mode
+    :ensure t)
+  
+>>>>>>> 5e7a573 (update configuration)
   (use-package elfeed
     :ensure t
     :hook
@@ -1512,12 +3016,22 @@ Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_resear
     (elfeed-score-load-score-file "~/.emacs.d/elfeed.score")
     (define-key elfeed-search-mode-map "=" elfeed-score-map))
 #+end_src
+<<<<<<< HEAD
 *** Set RSS feeds
 #+begin_src emacs-lisp
   (setq elfeed-feeds '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
 #+end_src
 ** Set up =elfeed-search=
 *** Format =elfeed-search= output
+=======
+
+then, we set up our RSS feeds
+#+begin_src emacs-lisp
+  (setq elfeed-feeds        '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
+#+end_src
+
+for a better elfeed output:
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (defun concatenate-authors (authors-list)
     "Given AUTHORS-LIST, list of plists; return string of all authors concatenated."
@@ -1552,7 +3066,12 @@ Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_resear
   (setq elfeed-search-date-format '("%y-%m-%d" 10 :left))
   (setq elfeed-search-title-max-width 110)
 #+end_src
+<<<<<<< HEAD
 *** Fetch arXiv paper from elfeed entry and save to reading list
+=======
+
+now we can store our entry to our references file:
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (defun my/elfeed-entry-to-arxiv ()
     (interactive)
@@ -1566,7 +3085,11 @@ Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_resear
         (arxiv-get-pdf-add-bibtex-entry matched-arxiv-number arxiv_bib arxiv_pdf_loc)
         ;; Now, we are updating the most recent bib file with the pdf location
         (message "Update bibtex with pdf file location")
+<<<<<<< HEAD
         (save-window-excursion
+=======
+        (save-excursion
+>>>>>>> 5e7a573 (update configuration)
                 ;; Get the bib file
                 (find-file arxiv_bib)
                 ;; get to last line
@@ -1585,14 +3108,23 @@ Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_resear
                         (setq last-arxiv-title title)
                         (save-buffer)
                         )))
+<<<<<<< HEAD
         (save-window-excursion
+=======
+        (save-excursion
+>>>>>>> 5e7a573 (update configuration)
           (find-file (concat org-directory "papers.org"))
           (goto-char (point-max))
           (insert (format "** TODO Read paper (cite:%s) %s" last-arxiv-key last-arxiv-title))
           (save-buffer))
   	)))
 #+end_src
+<<<<<<< HEAD
 *** Configure variables and key bindings
+=======
+
+and we configure the variables and keybindings.
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (setq arxiv_bib "~/org/references.bib")
   (setq arxiv_pdf_loc "~/Documents/papers/arxiv/")
@@ -1602,6 +3134,7 @@ Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_resear
   (setq bibtex-completion-bibliography (list arxiv_bib))
   (setq bibtex-completion-pdf-field "file")
 
+<<<<<<< HEAD
   (global-set-key (kbd "C-c n a") #'my/elfeed-entry-to-arxiv)
   (global-set-key (kbd "C-c n e") #'elfeed)
 #+end_src
@@ -1617,6 +3150,16 @@ Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_resear
 Now I can do nearly anything in emacs
 ** Setting up
 *** Key bindings and authorisation
+=======
+  (keymap-global-set "C-c n a" #'my/elfeed-entry-to-arxiv)
+  (keymap-global-set "C-c n e" #'elfeed)
+#+end_src
+
+** slack
+did I mention I want to reduce switching between applications?
+
+we load slack and also configure our channels and all that.
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package slack
     :bind (("C-c S K" . slack-stop)
@@ -1648,6 +3191,10 @@ Now I can do nearly anything in emacs
   	 )
     :custom
     (slack-extra-subscribed-channels (mapcar 'intern (list "ldi-main" "ldi-graduate" "team-agentic-memory" "ai-server" "help-me" "ml-share" "agentic-memory")))
+<<<<<<< HEAD
+=======
+    (slack-prefer-current-team t)
+>>>>>>> 5e7a573 (update configuration)
     :config
     (slack-register-team
      :name "languagedatakhu"
@@ -1658,6 +3205,7 @@ Now I can do nearly anything in emacs
   	    :host "languagedatakhu.slack.com"
   	    :user "dania.moriazi01@khu.ac.kr^cookie")
      :full-and-display-names t
+<<<<<<< HEAD
      :default t
      ))
   
@@ -1665,6 +3213,15 @@ Now I can do nearly anything in emacs
 #+end_src
 *** Parse message metadata
 #+begin_src emacs-lisp
+=======
+     :default t))
+#+end_src
+
+I also want to receive slack notifications on emacs.
+
+#+begin_src emacs-lisp
+  ;; parse message metadata
+>>>>>>> 5e7a573 (update configuration)
   (defun slack/parse-message-loc (title)
     (concat "#" (string-trim (nth 1 (split-string title "#")))))
 
@@ -1675,10 +3232,15 @@ Now I can do nearly anything in emacs
     (let* ((title (plist-get info :title))
   	 (message (plist-get info :message)))
       (string-trim (nth 1 (split-string message ":")))))
+<<<<<<< HEAD
 #+end_src
 *** Notifications
 Connecting Slack to org-agenda
 #+begin_src emacs-lisp
+=======
+
+  ;; configure alert
+>>>>>>> 5e7a573 (update configuration)
   (defun my/slack-notify (info)
     (let* ((channel (slack/parse-message-loc (plist-get info :title)))
     	 (user (slack/parse-sender (plist-get info :message)))
@@ -1698,6 +3260,7 @@ Connecting Slack to org-agenda
          nil
          (concat org-directory "slack.org")
          t))))
+<<<<<<< HEAD
   (use-package alert
       :ensure t
       :init
@@ -1707,6 +3270,18 @@ Connecting Slack to org-agenda
        'my/slack-alert
        :title "org slack alerts"
        :notifier (lambda (info)
+=======
+
+  (use-package alert
+    :ensure t
+    :init
+    (setq alert-default-style 'message)
+    :config
+    (alert-define-style
+     'my/slack-alert
+     :title "org slack alerts"
+     :notifier (lambda (info)
+>>>>>>> 5e7a573 (update configuration)
     	       (if (get-buffer "slack.org")
     		   (with-current-buffer "slack.org"
     		     (save-buffer))
@@ -1714,6 +3289,7 @@ Connecting Slack to org-agenda
     		     (get-buffer-create (find-file (concat org-directory "slack.org")))
     		   (save-buffer)))
     	       (my/slack-notify info)))
+<<<<<<< HEAD
       
       (add-to-list 'alert-user-configuration
     	       '(((:category . "slack")) my/slack-alert nil))
@@ -1723,10 +3299,22 @@ Connecting Slack to org-agenda
       (interactive)
       (save-excursion
         (do-list (buf '("slack.org_archive" "slack.org"))
+=======
+    
+    (add-to-list 'alert-user-configuration
+    	       '(((:category . "slack")) my/slack-alert nil))
+    :hook (org-agenda-mode-hook . (lambda () (local-set-key (kbd "M") 'my/org-agenda-todo-archive))))
+
+  (defun my/save-slack ()
+    (interactive)
+    (save-excursion
+      (do-list (buf '("slack.org_archive" "slack.org"))
+>>>>>>> 5e7a573 (update configuration)
     	     (set-buffer buf)
     	     (if (and (buffer-file-name) (buffer-modified-p))
     		 (basic-save-buffer)))))
 
+<<<<<<< HEAD
     (defun my/org-agenda-todo-archive()
       (interactive)
       (org-agenda-todo 'done)
@@ -1736,6 +3324,16 @@ Connecting Slack to org-agenda
 ** Sending messages from emacs buffer
 *** Convert org-mode to mrkdwn
 After exporting org-mode to markdown using the built-in =org-export=, I pass the markdown output into a python script to then convert it into mrkdwn (slack-compatible markdown flavour)
+=======
+  (defun my/org-agenda-todo-archive()
+    (interactive)
+    (org-agenda-todo 'done)
+    (org-agenda-archive)
+    (my/save-slack))
+#+end_src
+
+the chad thing to do is to send slack messages from emacs
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (defun my/org-to-slack-md ()
     (interactive)
@@ -1749,9 +3347,13 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
   			(shell-quote-argument slack-md))))
         (kill-buffer)
         (shell-command-to-string cmd))))
+<<<<<<< HEAD
 #+end_src
 *** Sending the message
 #+begin_src emacs-lisp
+=======
+
+>>>>>>> 5e7a573 (update configuration)
   (defun my/slack-send-message ()
     (interactive)
     (let ((slack-msg (my/org-to-slack-md)))
@@ -1762,6 +3364,7 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
   	      (slack-buffer-send-message buffer slack-msg))
   	(print slack-msg)))))
 #+end_src
+<<<<<<< HEAD
 ** Start server
 #+begin_src emacs-lisp
   (global-set-key (kbd "C-c S p") #'my/slack-send-message)
@@ -1906,6 +3509,19 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
   (slime-setup '(slime-fancy))
 #+end_src
 * Projectile
+=======
+
+now, we can start the slack server
+#+begin_src emacs-lisp :tangle "init.el"
+  (keymap-global-set "C-c S p" #'my/slack-send-message)
+  (keymap-global-set "C-c S o" #'my/org-to-slack-md)
+
+  (add-hook 'emacs-startup-hook #'slack-start)
+#+end_src
+
+** projectile
+for better project management
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package projectile
     :ensure t
@@ -1927,7 +3543,12 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
     (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
     (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
 #+end_src
+<<<<<<< HEAD
 * Zotero
+=======
+
+** zotero
+>>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package zotra
     :ensure t
@@ -1947,6 +3568,7 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
   		   '(zotra-download-attachment-for-current-entry))))
         (zotra-add-entry url))))
 #+end_src
+<<<<<<< HEAD
 * Howm
 ** setup
 #+begin_src emacs-lisp
@@ -1997,3 +3619,5 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
        (list
         (calfw-org-create-source nil "org-agenda" "peru"))))
 #+end_src
+=======
+>>>>>>> 5e7a573 (update configuration)
