@@ -39,15 +39,15 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(require 'package)
-(require 'use-package)
+ (require 'package)
+ (require 'use-package)
 
-(add-to-list 'package-archives
-	     '("melpa" . "https://melpa.org/packages/") t)
+ (add-to-list 'package-archives
+ 	     '("melpa" . "https://melpa.org/packages/") t)
+;; and now we can initialise our package archives
+ (package-initialize)
 
-(package-initialize)
-
-(setq load-prefer-newer t)
+ (setq load-prefer-newer t)
 
 (use-package no-littering
   :ensure t
@@ -298,7 +298,7 @@
   :config
   (marginalia-mode))
 
-;; Example configuration for Consult
+  ;; Example configuration for Consult
 (use-package consult-flycheck
   :ensure t
   :commands
@@ -656,6 +656,11 @@
   (interactive)
   (toggle-input-method))
 
+(defun my/initialise-input-method ()
+  (interactive)
+  (set-input-method 'korean-hangul)
+  (toggle-input-method))
+
 (keymap-global-set "s-SPC" #'my/toggle-input-method)
 (add-hook 'emacs-startup-hook #'my/initialise-input-method)
 
@@ -776,6 +781,7 @@
      '("<escape>" . ignore)))
   (meow-setup)
   (meow-global-mode 1))
+
 
 (use-package helpful
   :ensure t
@@ -1005,7 +1011,7 @@
   (browse-url (hf-expand-link repo repo-type)))
 
 (defun hf-expand-link (repo &optional repo-type)
-
+  (if (string= repo-type "dataset")
       (format "https://huggingface.co/datasets/%s" repo)
     (format "https://huggingface/co/%s" repo)))
 
@@ -1132,6 +1138,7 @@
 			 :export #'my/ref-link--export-link
 			 :store-link #'my/ref-link--store-link
 			 :insert-description #'my/ref-link--insert-description)
+
 
 (setq org-gcal-client-id
       (auth-source-pick-first-password :host "org-gcal"
@@ -1315,7 +1322,7 @@
   :hook
   (dockerfile-ts-mode . lsp-deferred))
 
-(use-package typescript-ts-mode
+  (use-package typescript-ts-mode
   :ensure nil
   :defer t
   :mode
@@ -1454,7 +1461,7 @@
 
 (add-hook 'treemacs-after-visit-functions #'my/refresh-undo-tree-visualizer)
 
-(use-package transient
+  (use-package transient
     :ensure t)
 
   (use-package pinentry

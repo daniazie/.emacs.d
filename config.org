@@ -79,23 +79,19 @@ some packages I use require =straight.el=
 *** the basics
 setup =package= and =use-package=, along with adding melpa to our package archives.
 #+begin_src emacs-lisp
-  (require 'package)
-  (require 'use-package)
+   (require 'package)
+   (require 'use-package)
 
-  (add-to-list 'package-archives
-  	     '("melpa" . "https://melpa.org/packages/") t)
-#+end_src
-
-*** initialisation
-and now we can initialise our package archives
-#+begin_src emacs-lisp
-  (package-initialize)
-
-  (setq load-prefer-newer t)
+   (add-to-list 'package-archives
+   	     '("melpa" . "https://melpa.org/packages/") t)
+  ;; and now we can initialise our package archives
+   (package-initialize)
+  
+   (setq load-prefer-newer t)
 #+end_src
 
 ** no-littering
-we try to keep a litter-free space.
+we qtry to keep a litter-free space.
 #+begin_src emacs-lisp
   (use-package no-littering
     :ensure t
@@ -796,6 +792,11 @@ but actually, I personally like to keep my =toggle-input-method= keybinding the 
     (interactive)
     (toggle-input-method))
 
+  (defun my/initialise-input-method ()
+    (interactive)
+    (set-input-method 'korean-hangul)
+    (toggle-input-method))
+
   (keymap-global-set "s-SPC" #'my/toggle-input-method)
   (add-hook 'emacs-startup-hook #'my/initialise-input-method)
 #+end_src
@@ -1184,7 +1185,7 @@ I have four custom links (three for repo-type sites and one for citations).
        (browse-url (hf-expand-link repo repo-type)))
 
      (defun hf-expand-link (repo &optional repo-type)
-
+       (if (string= repo-type "dataset")
            (format "https://huggingface.co/datasets/%s" repo)
          (format "https://huggingface/co/%s" repo)))
 
