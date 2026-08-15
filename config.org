@@ -564,7 +564,6 @@ here we configure cape and corfu (but not in that order)
     (keymap-global-set "C-<iso-lefttab>" 'corfu-candidate-overlay-complete-at-point))
 
   (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
->>>>>>> 5e7a573 (update configuration)
 
   ;; Optionally:
   (setq nerd-icons-corfu-mapping

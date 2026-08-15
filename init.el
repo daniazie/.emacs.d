@@ -298,7 +298,7 @@
   :config
   (marginalia-mode))
 
-  ;; Example configuration for Consult
+;; Example configuration for Consult
 (use-package consult-flycheck
   :ensure t
   :commands
@@ -418,71 +418,70 @@
 (use-package embark-consult
   :ensure t)
 
-  (use-package corfu
-    :demand t
-    :ensure t
-    :custom
-    (setq corfu-auto t
-  	corfu-auto-delay 0
-  	corfu-auto-prefix 0)
-    (corfu-cycle t)
-    (corfu-quit-at-boundary nil)
-    (corfu-quit-no-match nil)
-    (setq global-corfu-minibuffer
-  	(lambda ()
-  	  (not (or (bound-and-true-p mct--active)
-  		   (bound-and-true-p vertico--input)
-  		   (eq (current-local-map) read-passwd-map)))))
-    (corfu-separator ?_)
-    :hook
-    (eshell-mode . (lambda ()
-  		   (setq-local corfu-auto nil)
-  		   (corfu-mode)))
-    (corfu-mode . (lambda ()
-  		  ;; Settings only for Corfu
-  		  (setq-local completion-styles '(basic)
-  			      completion-category-overrides nil
-  			      completion-category-defaults nil)))
-    :bind
-    (:map corfu-map ("SPC" . corfu-insert-separator))
-    :init
-    (global-corfu-mode)
-    (corfu-history-mode)
-    (corfu-popupinfo-mode)
-    :config
-    (keymap-unset corfu-map "RET")
-    (keymap-set corfu-map "RET" `( menu-item "" nil :filter
-  				 ,(lambda (&optional _)
-  				    (and (derived-mode-p 'eshell-mode 'comint-mode)
-  					 #'corfu-send)))))
+(use-package corfu
+  :demand t
+  :ensure t
+  :custom
+  (setq corfu-auto t
+	corfu-auto-delay 0
+	corfu-auto-prefix 0)
+  (corfu-cycle t)
+  (corfu-quit-at-boundary nil)
+  (corfu-quit-no-match nil)
+  (setq global-corfu-minibuffer
+	(lambda ()
+	  (not (or (bound-and-true-p mct--active)
+		   (bound-and-true-p vertico--input)
+		   (eq (current-local-map) read-passwd-map)))))
+  (corfu-separator ?_)
+  :hook
+  (eshell-mode . (lambda ()
+		   (setq-local corfu-auto nil)
+		   (corfu-mode)))
+  (corfu-mode . (lambda ()
+		  ;; Settings only for Corfu
+		  (setq-local completion-styles '(basic)
+			      completion-category-overrides nil
+			      completion-category-defaults nil)))
+  :bind
+  (:map corfu-map ("SPC" . corfu-insert-separator))
+  :init
+  (global-corfu-mode)
+  (corfu-history-mode)
+  (corfu-popupinfo-mode)
+  :config
+  (keymap-unset corfu-map "RET")
+  (keymap-set corfu-map "RET" `( menu-item "" nil :filter
+				 ,(lambda (&optional _)
+				    (and (derived-mode-p 'eshell-mode 'comint-mode)
+					 #'corfu-send)))))
 
-  (use-package corfu-candidate-overlay
-    :ensure t
-    :demand t
-    :after corfu
-    :config
-    (corfu-candidate-overlay-mode 1)
-    (keymap-global-set "C-<tab>" 'completion-at-point)
-    (keymap-global-set "C-<iso-lefttab>" 'corfu-candidate-overlay-complete-at-point))
+(use-package corfu-candidate-overlay
+  :ensure t
+  :demand t
+  :after corfu
+  :config
+  (corfu-candidate-overlay-mode 1)
+  (keymap-global-set "C-<tab>" 'completion-at-point)
+  (keymap-global-set "C-<iso-lefttab>" 'corfu-candidate-overlay-complete-at-point))
 
-  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
->>>>>>> 5e7a573 (update configuration)
+(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
 
-  ;; Optionally:
-  (setq nerd-icons-corfu-mapping
-        '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
-  	(boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
-  	;; You can alternatively specify a function to perform the mapping,
-  	;; use this when knowing the exact completion candidate is important.
-  	;; Don't pass `:face' if the function already returns string with the
-  	;; face property, though.
-  	(file :fn nerd-icons-icon-for-file :face font-lock-string-face)
-  	;; ...
-          (t :style "cod" :icon "code" :face font-lock-warning-face)))
-          ;; If you add an entry for t, the library uses that as fallback.
-          ;; The default fallback (when it's not specified) is the ? symbol.
+;; Optionally:
+(setq nerd-icons-corfu-mapping
+      '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+	(boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+	;; You can alternatively specify a function to perform the mapping,
+	;; use this when knowing the exact completion candidate is important.
+	;; Don't pass `:face' if the function already returns string with the
+	;; face property, though.
+	(file :fn nerd-icons-icon-for-file :face font-lock-string-face)
+	;; ...
+        (t :style "cod" :icon "code" :face font-lock-warning-face)))
+        ;; If you add an entry for t, the library uses that as fallback.
+        ;; The default fallback (when it's not specified) is the ? symbol.
 
-  ;; The Custom interface is also supported for tuning the variable above.
+;; The Custom interface is also supported for tuning the variable above.
 
 (use-package cape
 ;; Bind prefix keymap providing all Cape commands under a mnemonic key.
@@ -777,7 +776,6 @@
      '("<escape>" . ignore)))
   (meow-setup)
   (meow-global-mode 1))
-
 
 (use-package helpful
   :ensure t
@@ -1135,7 +1133,6 @@
 			 :store-link #'my/ref-link--store-link
 			 :insert-description #'my/ref-link--insert-description)
 
-
 (setq org-gcal-client-id
       (auth-source-pick-first-password :host "org-gcal"
                                        :user "dania.moriazi01@khu.ac.kr^id"))
@@ -1318,7 +1315,7 @@
   :hook
   (dockerfile-ts-mode . lsp-deferred))
 
-  (use-package typescript-ts-mode
+(use-package typescript-ts-mode
   :ensure nil
   :defer t
   :mode
@@ -1457,7 +1454,7 @@
 
 (add-hook 'treemacs-after-visit-functions #'my/refresh-undo-tree-visualizer)
 
-  (use-package transient
+(use-package transient
     :ensure t)
 
   (use-package pinentry
