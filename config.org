@@ -26,7 +26,7 @@ Here, we write our =early-init.el= configuration. For some reason, emacs still u
 #+PROPERTY: header-args:emacs-lisp :tangle "init.el" :exports code
 Here, we write our configuration for =init.el=. Our first order of business: garbage collection.
 #+begin_src emacs-lisp
-  ;;; -*- lexical-binding: t-*-
+  ;;; -*- lexical-binding: t -*-
 
   (setq gc-cons-percentage 1.0)
   (if noninteractive
@@ -43,6 +43,16 @@ Here, we write our configuration for =init.el=. Our first order of business: gar
             (lambda () (setq gc-cons-threshold 800000)))
 
   (setq read-process-output-max (* 1024 1024))
+#+end_src
+
+also, we add our custom-set-variables here.
+#+begin_src emacs-lisp
+  (custom-set-variables
+   '(org-agenda-files
+     '("/home/dania/org/agentic-memory.org" "/home/dania/org/calendar.org"
+       "/home/dania/org/daily.org" "/home/dania/org/meeting.org"
+       "/home/dania/org/paper-listup.org" "/home/dania/org/todo.org"
+       "/home/dania/org/slack.org")))
 #+end_src
 
 ** setting up package archives
@@ -240,7 +250,6 @@ ibuffer is much more convenient than the built-in list-buffers
 
 ** shell
 I want emacs to detect my shell paths
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (when (memq window-system '(mac ns x))
   (use-package exec-path-from-shell
@@ -249,28 +258,6 @@ I want emacs to detect my shell paths
     :config
     (exec-path-from-shell-initialize)))
 #+end_src
-<<<<<<< HEAD
-*** Enable which-key
-#+begin_src emacs-lisp
-  (use-package which-key
-    :ensure t
-    :demand t
-    :config
-    (which-key-setup-side-window-right-bottom)
-    (setq which-key-popup-type 'side-window)
-    (which-key-mode))
-#+end_src
-*** Enable delete selection
-#+begin_src emacs-lisp
-  (delete-selection-mode)
-#+end_src
-*** Consult
-#+begin_src emacs-lisp
-  ;; Example configuration for Consult
-  (use-package consult
-    ;; Replace bindings. Lazily loaded by `use-package'.
-    :demand t
-=======
 
 ** configure which-key
 I don't think I would've lasted as long as I have if it were not for which-key
@@ -402,202 +389,109 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
 
 *** consult
 #+begin_src emacs-lisp
-    ;; Example configuration for Consult
-  (use-package consult-flycheck
-    :ensure t
-    :demand t
-    :commands
-    consult-flycheck)
-
-  (use-package consult
-    ;; Replace bindings. Lazily loaded by `use-package'.
-    :defer nil
->>>>>>> 5e7a573 (update configuration)
-    :bind (;; C-c bindings in `mode-specific-map'
-           ("C-c M-x" . consult-mode-command)
-           ("C-c h" . consult-history)
-           ("C-c k" . consult-kmacro)
-           ("C-c m" . consult-man)
-           ("C-c i" . consult-info)
-           ([remap Info-search] . consult-info)
-           ;; C-x bindings in `ctl-x-map'
-           ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
-<<<<<<< HEAD
-  	 ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
-=======
-           ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
->>>>>>> 5e7a573 (update configuration)
-           ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-           ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
-           ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
-           ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
-           ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
-           ;; Custom M-# bindings for fast register access
-           ("M-#" . consult-register-load)
-           ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
-           ("C-M-#" . consult-register)
-           ;; Other custom bindings
-           ("M-y" . consult-yank-pop)                ;; orig. yank-pop
-<<<<<<< HEAD
-           ;; M-g bindings in `goto-map'
-           ("M-g e" . consult-compile-error)
-           ("M-g r" . consult-grep-match)
-           ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
-=======
-           ("C-c & C-s" . consult-yasnippet)         ;; orig. yas-insert-snippet
-           ;; M-g bindings in `goto-map'
-           ("M-g e" . consult-compile-error)
-           ("M-g r" . consult-grep-match)
-           ("M-g f" . consult-flycheck)               ;; Alternative: consult-flycheck
->>>>>>> 5e7a573 (update configuration)
-           ("M-g g" . consult-goto-line)             ;; orig. goto-line
-           ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
-           ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
-           ("M-g m" . consult-mark)
-           ("M-g k" . consult-global-mark)
-           ("M-g i" . consult-imenu)
-           ("M-g I" . consult-imenu-multi)
-           ;; M-s bindings in `search-map'
-           ("M-s d" . consult-find)                  ;; Alternative: consult-fd
-           ("M-s c" . consult-locate)
-           ("M-s g" . consult-grep)
-           ("M-s G" . consult-git-grep)
-           ("M-s r" . consult-ripgrep)
-           ("M-s l" . consult-line)
-           ("M-s L" . consult-line-multi)
-           ("M-s k" . consult-keep-lines)
-           ("M-s u" . consult-focus-lines)
-           ;; Isearch integration
-           ("M-s e" . consult-isearch-history)
-           :map isearch-mode-map
-           ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
-           ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
-           ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
-           ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
-           ;; Minibuffer history
-           :map minibuffer-local-map
-           ("M-s" . consult-history)                 ;; orig. next-matching-history-element
-           ("M-r" . consult-history))                ;; orig. previous-matching-history-element
-<<<<<<< HEAD
-
-    ;; The :init configuration is always executed (Not lazy)
-    :init
-
-=======
-    
-      ;; The :init configuration is always executed (Not lazy)
-    :init
-    
->>>>>>> 5e7a573 (update configuration)
-    ;; Tweak the register preview for `consult-register-load',
-    ;; `consult-register-store' and the built-in commands.  This improves the
-    ;; register formatting, adds thin separator lines, register sorting and hides
-    ;; the window mode line.
-    (advice-add #'register-preview :override #'consult-register-window)
-    (setq register-preview-delay 0.5)
-<<<<<<< HEAD
-
-    ;; Use Consult to select xref locations with preview
-    (setq xref-show-xrefs-function #'consult-xref
-          xref-show-definitions-function #'consult-xref)
-
-    ;; Configure other variables and modes in the :config section,
-    ;; after lazily loading the package.
-    :config
-
-=======
-    
-    ;; Use Consult to select xref locations with preview
-    (setq xref-show-xrefs-function #'consult-xref
-          xref-show-definitions-function #'consult-xref)
-    
-    ;; Configure other variables and modes in the :config section,
-    ;; after lazily loading the package.
-    :config
-    
->>>>>>> 5e7a573 (update configuration)
-    ;; Optionally configure preview. The default value
-    ;; is 'any, such that any key triggers the preview.
-    ;; (setq consult-preview-key 'any)
-    ;; (setq consult-preview-key "M-.")
-    ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
-    ;; For some commands and buffer sources it is useful to configure the
-    ;; :preview-key on a per-command basis using the `consult-customize' macro.
-    (consult-customize
-     consult-theme :preview-key '(:debounce 0.2 any)
-     consult-ripgrep consult-git-grep consult-grep consult-man
-     consult-bookmark consult-recent-file consult-xref
-     consult-source-bookmark consult-source-file-register
-     consult-source-recent-file consult-source-project-recent-file
-     ;; :preview-key "M-."
-     :preview-key '(:debounce 0.4 any))
-<<<<<<< HEAD
-
-    (setq consult-narrow-key "C-+") ;; 
-
-    ;; Optionally make narrowing help available in the minibuffer.
-    ;; You may want to use `embark-prefix-help-command' or which-key instead.
-    ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
-  )
-#+end_src
-*** On completions
-**** corfu
-#+begin_src emacs-lisp
-    (use-package corfu
-      :demand t
+      ;; Example configuration for Consult
+    (use-package consult-flycheck
       :ensure t
-      :custom
-      (setq corfu-auto t
-    	corfu-auto-delay 0
-    	corfu-auto-prefix 0)
-      (corfu-cycle t)
-      (corfu-quit-at-boundary nil)
-      (corfu-quit-no-match nil)
-      (setq global-corfu-minibuffer
-        (lambda ()
-          (not (or (bound-and-true-p mct--active)
-                   (bound-and-true-p vertico--input)
-                   (eq (current-local-map) read-passwd-map)))))
-      (corfu-separator ?_)
-      :hook
-      (eshell-mode . (lambda ()
-                                (setq-local corfu-auto nil)
-                                (corfu-mode)))
-      (corfu-mode . (lambda ()
-              ;; Settings only for Corfu
-              (setq-local completion-styles '(basic)
-                          completion-category-overrides nil
-                          completion-category-defaults nil)))
-      :bind
-      (:map corfu-map ("SPC" . corfu-insert-separator))
+      :commands
+      consult-flycheck)
+
+    (use-package consult
+      ;; Replace bindings. Lazily loaded by `use-package'.
+      :ensure t
+      :bind (;; C-c bindings in `mode-specific-map'
+             ("C-c M-x" . consult-mode-command)
+             ("C-c h" . consult-history)
+             ("C-c k" . consult-kmacro)
+             ("C-c m" . consult-man)
+             ("C-c i" . consult-info)
+             ([remap Info-search] . consult-info)
+             ;; C-x bindings in `ctl-x-map'
+             ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+             ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+             ("C-x 4 b" . consult-buffer-other-window) ;; orig. 
+             ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+             ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
+             ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+             ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+             ;; Custom M-# bindings for fast register access
+             ("M-#" . consult-register-load)
+             ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+             ("C-M-#" . consult-register)
+             ;; Other custom bindings
+             ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+             ("C-c & C-s" . consult-yasnippet)         ;; orig. yas-insert-snippet
+             ;; M-g bindings in `goto-map'
+             ("M-g e" . consult-compile-error)
+             ("M-g r" . consult-grep-match)
+             ("M-g f" . consult-flycheck)               ;; Alternative: consult-flycheck
+             ("M-g g" . consult-goto-line)             ;; orig. goto-line
+             ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+             ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+             ("M-g m" . consult-mark)
+             ("M-g k" . consult-global-mark)
+             ("M-g i" . consult-imenu)
+             ("M-g I" . consult-imenu-multi)
+             ;; M-s bindings in `search-map'
+             ("M-s d" . consult-find)                  ;; Alternative: consult-fd
+             ("M-s c" . consult-locate)
+             ("M-s g" . consult-grep)
+             ("M-s G" . consult-git-grep)
+             ("M-s r" . consult-ripgrep)
+             ("M-s l" . consult-line)
+             ("M-s L" . consult-line-multi)
+             ("M-s k" . consult-keep-lines)
+             ("M-s u" . consult-focus-lines)
+             ;; Isearch integration
+             ("M-s e" . consult-isearch-history)
+             :map isearch-mode-map
+             ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+             ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+             ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+             ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+             ;; Minibuffer history
+             :map minibuffer-local-map
+             ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+             ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+        ;; The :init configuration is always executed (Not lazy)
       :init
-      (global-corfu-mode)
-      (corfu-history-mode)
-      (corfu-popupinfo-mode)
+      ;; Tweak the register preview for `consult-register-load',
+      ;; `consult-register-store' and the built-in commands.  This improves the
+      ;; register formatting, adds thin separator lines, register sorting and hides
+      ;; the window mode line.
+      (advice-add #'register-preview :override #'consult-register-window)
+      (setq register-preview-delay 0.5)
+      
+      ;; Use Consult to select xref locations with preview
+      (setq xref-show-xrefs-function #'consult-xref
+            xref-show-definitions-function #'consult-xref)
+      
+      ;; Configure other variables and modes in the :config section,
+      ;; after lazily loading the package.
       :config
-      (keymap-unset corfu-map "RET")
-      (keymap-set corfu-map "RET" `( menu-item "" nil :filter
-                                   ,(lambda (&optional _)
-                                      (and (derived-mode-p 'eshell-mode 'comint-mode)
-                                           #'corfu-send)))))
+      
+      ;; Optionally configure preview. The default value
+      ;; is 'any, such that any key triggers the preview.
+      ;; (setq consult-preview-key 'any)
+      ;; (setq consult-preview-key "M-.")
+      ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
+      ;; For some commands and buffer sources it is useful to configure the
+      ;; :preview-key on a per-command basis using the `consult-customize' macro.
+      (consult-customize
+       consult-theme :preview-key '(:debounce 0.2 any)
+       consult-ripgrep consult-git-grep consult-grep consult-man
+       consult-bookmark consult-recent-file consult-xref
+       consult-source-bookmark consult-source-file-register
+       consult-source-recent-file consult-source-project-recent-file
+       ;; :preview-key "M-."
+       :preview-key '(:debounce 0.4 any))
 
-    (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
-=======
-    
-    (setq consult-narrow-key "C-+") ;; 
-    
-    ;; Optionally make narrowing help available in the minibuffer.
-    ;; You may want to use `embark-prefix-help-command' or which-key instead.
-    ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
-    (consult-info-define "emacs" "efaq" "elisp" "cl" "compat" "eshell")
-    (consult-info-define 'completion
-                         "vertico" "consult" "marginalia" "orderless"
-                         "embark" "corfu" "cape" "tempel")
-    (consult-info-define "org")
-    (consult-info-define "gnus")
-    (consult-info-define "magit"))
+      (setq consult-narrow-key "C-+") ;; 
+
+      ;; Optionally make narrowing help available in the minibuffer.
+      ;; You may want to use `embark-prefix-help-command' or which-key instead.
+      ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
+    )
 #+end_src
-
 *** embark
 #+begin_src emacs-lisp 
   (use-package embark
@@ -675,15 +569,6 @@ here we configure cape and corfu (but not in that order)
   ;; Optionally:
   (setq nerd-icons-corfu-mapping
         '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
-<<<<<<< HEAD
-          (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
-          ;; You can alternatively specify a function to perform the mapping,
-          ;; use this when knowing the exact completion candidate is important.
-          ;; Don't pass `:face' if the function already returns string with the
-          ;; face property, though.
-          (file :fn nerd-icons-icon-for-file :face font-lock-string-face)
-          ;; ...
-=======
   	(boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
   	;; You can alternatively specify a function to perform the mapping,
   	;; use this when knowing the exact completion candidate is important.
@@ -691,19 +576,13 @@ here we configure cape and corfu (but not in that order)
   	;; face property, though.
   	(file :fn nerd-icons-icon-for-file :face font-lock-string-face)
   	;; ...
->>>>>>> 5e7a573 (update configuration)
           (t :style "cod" :icon "code" :face font-lock-warning-face)))
           ;; If you add an entry for t, the library uses that as fallback.
           ;; The default fallback (when it's not specified) is the ? symbol.
 
   ;; The Custom interface is also supported for tuning the variable above.
 #+end_src
-<<<<<<< HEAD
-**** cape
-=======
-
 *** cape
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package cape
   ;; Bind prefix keymap providing all Cape commands under a mnemonic key.
@@ -714,119 +593,6 @@ here we configure cape and corfu (but not in that order)
   ;;        ("C-c p h" . cape-history)
   ;;        ("C-c p f" . cape-file)
   ;;        ...)
-<<<<<<< HEAD
-  :init
-=======
-  ;;
->>>>>>> 5e7a573 (update configuration)
-  ;; Add to the global default value of `completion-at-point-functions' which is
-  ;; used by `completion-at-point'.  The order of the functions matters, the
-  ;; first function returning a result wins.  Note that the list of buffer-local
-  ;; completion functions takes precedence over the global list.
-<<<<<<< HEAD
-  (add-hook 'completion-at-point-functions #'cape-dabbrev)
-  (add-hook 'completion-at-point-functions #'cape-file)
-  (add-hook 'completion-at-point-functions #'cape-elisp-block)
-  ;; (add-hook 'completion-at-point-functions #'cape-history)
-  ;; ...
-)
-#+end_src
-**** vertico
-#+begin_src emacs-lisp
-    ;; Enable Vertico.
-  (use-package vertico
-    :custom
-    (vertico-scroll-margin 0) ;; Different scroll margin
-    (vertico-count 20) ;; Show more candidates
-    (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
-    (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
-    :init
-    (vertico-mode))
-
-  ;; Persist history over Emacs restarts. Vertico sorts by history position.
-  (use-package savehist
-    :init
-    (savehist-mode)
-    :config
-    (setq history-length 15))
-#+end_src
-**** Orderless
-#+begin_src emacs-lisp
-  ;; Optionally use the `orderless' completion style.
-(use-package orderless
-  :custom
-  ;; Configure a custom style dispatcher (see the Consult wiki)
-  ;; (orderless-style-dispatchers '(+orderless-consult-dispatch orderless-affix-dispatch))
-  ;; (orderless-component-separator #'orderless-escapable-split-on-space)
-  (completion-styles '(orderless basic))
-  (completion-category-overrides '((file (styles partial-completion))))
-  (completion-category-defaults nil) ;; Disable defaults, use our settings
-  (completion-pcm-leading-wildcard t)) ;; Emacs 31: partial-completion behaves like substring
-#+end_src
-**** Marginalia
-#+begin_src emacs-lisp
-  (use-package marginalia
-  :ensure t
-  :demand t
-  :config
-  (marginalia-mode))
-#+end_src
-**** Embark
-#+begin_src emacs-lisp
-  (use-package embark
-  :ensure t
-  :demand t
-  :bind
-  (("C-." . embark-act)         ;; pick some comfortable binding
-   ("C-;" . embark-dwim)        ;; good alternative: M-.
-   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
-  :init
-  ;; Optionally replace the key help with a completing-read interface
-  (setq prefix-help-command #'embark-prefix-help-command)
-
-  :config
-  ;; Hide the mode line of the Embark live/completions buffers
-  (add-to-list 'display-buffer-alist
-               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-                 nil
-                 (window-parameters (mode-line-format . none)))))
-
-  (use-package embark-consult
-    :ensure t
-    :demand t)
-#+end_src
-*** Autocomplete matching delimiters
-#+begin_src emacs-lisp
-  (electric-pair-mode t)
-#+end_src
-*** History
-#+begin_src emacs-lisp
-  (use-package recentf
-    :demand t
-    :ensure t
-    :config
-    (add-to-list 'recentf-exclude
-  	       (recentf-expand-file-name no-littering-var-directory))
-    (add-to-list 'recentf-exclude
-  	       (recentf-expand-file-name no-littering-etc-directory))
-    (recentf-mode t))
-#+end_src
-*** Auto-revert buffers
-#+begin_src emacs-lisp
-  (setq global-auto-revert-non-file-buffers t)
-  (global-auto-revert-mode 1)
-#+end_src
-*** undo-tree
-#+begin_src emacs-lisp
-  (use-package undo-tree
-    :init
-    (global-undo-tree-mode))
-#+end_src
-*** Set up time
-#+begin_src emacs-lisp
-  (defun my/convert-time (&optional DATE TIME ZONE)
-    (encode-time (parse-time-string (format "%sT%s%s" (format-time-string "%Y-%m-%d" DATE) TIME ZONE))))
-=======
   :init
   (add-hook 'completion-at-point-functions #'cape-dabbrev)
   (add-hook 'completion-at-point-functions #'cape-file)
@@ -936,7 +702,6 @@ so first and foremost, because I am chronically lazy, I like my =daily.org= to s
     (encode-time
      (parse-time-string
       (format "%sT%s%s" (format-time-string "%Y-%m-%d" DATE) TIME ZONE))))
->>>>>>> 5e7a573 (update configuration)
 
   (defun my/check-time-is-new-day ()
     (let ((is_night (time-less-p nil (my/convert-time nil "10:00:00" "+09"))))
@@ -944,70 +709,6 @@ so first and foremost, because I am chronically lazy, I like my =daily.org= to s
   	(and (not is_night) (time-less-p nil (my/convert-time nil "15:00:00" "+09")))
         (not is_night))))
 #+end_src
-<<<<<<< HEAD
-*** Var dir
-#+begin_src emacs-lisp
-  (defvar my/var-dir
-    (file-truename "~/.emacs.d/var/"))
-#+end_src
-*** gpg secrets management 
-#+begin_src emacs-lisp
-  (use-package plstore
-    :ensure t
-    :demand t
-    :config
-    (add-to-list 'plstore-encrypt-to "dania.moriazi01@khu.ac.kr")
-    (setq epg-pinentry-mode 'loopback))
-#+end_src
-*** elscreen
-#+begin_src emacs-lisp
-  (use-package elscreen
-    :ensure t
-    :demand t
-    :hook
-    (emacs-startup . elscreen-start))
-#+end_src
-*** Focus
-#+begin_src emacs-lisp
-  (use-package focus
-    :ensure t
-    :demand t
-    :config
-    (setq focus-mode-to-thing '((prog-mode . defun) (text-mode . sentence)))
-    (add-to-list 'focus-mode-to-thing '(python-mode . paragraph))
-    (focus-mode))
-#+end_src
-* On Startup
-** Setting up the windows
-*** Open =inbox.org= and =daily.org= on startup
-#+begin_src emacs-lisp
-  (defun my/goto-or-create-timestamp-header ()
-    (interactive)
-    (when (my/check-time-is-new-day)
-      (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
-  	   (pos (org-find-exact-headline-in-buffer timestamp)))
-        (if (not pos)
-  	  (progn (goto-char (buffer-size))
-  		 (org-insert-heading nil nil t)
-  		 (insert timestamp)
-  		 (goto-char (buffer-size))
-  		 (save-buffer))
-  	(goto-char pos))))
-    (save-buffer))
-
-  (defun my/open-org-inbox ()
-    (interactive)
-    (split-window-below)
-    (set-buffer
-     (get-buffer (find-file (concat org-directory "inbox.org"))))
-    (my/goto-or-create-timestamp-header)
-    (current-buffer))
-
-  (defun my/open-org-daily ()
-    (interactive)
-    (select-window (winum-get-window-by-number 2))
-    (my/split-window-right)
-=======
 
 now for our =daily.org=
 #+begin_src emacs-lisp 
@@ -1029,62 +730,11 @@ now for our =daily.org=
 
   (defun my/open-org-daily ()
     (interactive)
->>>>>>> 5e7a573 (update configuration)
     (set-buffer
      (get-buffer (find-file (concat org-directory "daily.org"))))
     (when (my/check-time-is-new-day)
       (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
   	   (pos (org-find-exact-headline-in-buffer timestamp)))
-<<<<<<< HEAD
-        (unless pos
-  	  (org-capture nil "d"))))
-    (save-buffer)
-    (current-buffer))
-#+end_src
-*** Also =org-agenda=
-#+begin_src emacs-lisp
-  (use-package dired-sidebar
-    :demand t)
-  (defun my/refresh-org-agenda ()
-    (interactive)
-    (with-current-buffer
-        (org-agenda nil "n")))
-
-  (defun my/open-org-agenda ()
-    (interactive)
-    (split-window-below)
-    (org-agenda nil "n")
-    (current-buffer))
-#+end_src
-*** Putting it all together with dashboard
-#+begin_src emacs-lisp
-  (defun my/window-setup ()
-        (interactive)
-        (if (and (fboundp 'server-running-p) 
-  	       (not (server-running-p)))
-  	  (server-start))
-        (my/open-org-agenda)
-        (my/open-org-inbox)
-        (my/open-org-daily)
-        (dired-sidebar-toggle-sidebar org-directory)
-        (current-buffer))
-
-  (use-package dashboard
-    :ensure t
-    :demand t
-    :config
-    (progn
-      (add-hook 'dashboard-after-initialize-hook #'my/window-setup)
-      (dashboard-setup-startup-hook))
-    :custom
-    (dashboard-banner-logo-title "the dashboard")
-    (dashboard-startup-banner (file-truename "~/.emacs.d/banner.txt"))
-    (dashboard-center-content t)
-    (dashboard-vertically-center-content t)
-    (dashboard-items '((recents . 5)
-  			  (bookmarks . 5)
-  			  (projects . 5)))
-=======
         (unless pos (progn
   		    (goto-char (buffer-size))
   		    (org-insert-heading nil nil t)
@@ -1131,74 +781,22 @@ and then dashboard:
     (dashboard-items '((recents . 5)
                        (bookmarks . 5)
                        (projects . 5)))
->>>>>>> 5e7a573 (update configuration)
-
     (dashboard-navigation-cycle t)
     (dashboard-display-icons-p t)
     (dashboard-icon-type 'nerd-icons)
     (dashboard-set-heading-icons t)
     (dashboard-set-file-icons t))
 #+end_src
-<<<<<<< HEAD
-** Multilinguality
-*** Enable 한글
-There is technically a default key binding for this but I like to keep it uniform with my system setting.
-#+begin_src emacs-lisp
-=======
+
 ** multilingual input
 did I mention I speak Korean? /s
 
 but actually, I personally like to keep my =toggle-input-method= keybinding the same as the system setting (which, out of habit, I had it configured to =s-<space>=)
 #+begin_src emacs-lisp 
->>>>>>> 5e7a573 (update configuration)
   (defun my/toggle-input-method ()
     (interactive)
     (toggle-input-method))
 
-<<<<<<< HEAD
-  (keymap-global-set "s-SPC" #'my/toggle-input-method)
-#+end_src
-*** Initialise input method
-So that I don't have to manually initialise it every time
-#+begin_src emacs-lisp
-=======
->>>>>>> 5e7a573 (update configuration)
-  (defun my/initialise-input-method ()
-    (interactive)
-    (set-input-method 'korean-hangul)
-    (toggle-input-method))
-
-<<<<<<< HEAD
-  (add-hook 'emacs-startup-hook #'my/initialise-input-method)
-#+end_src
-* For Convenience
-** Key bindings
-*** Shortcut to =config.org= and =.emacs=
-
-#+begin_src emacs-lisp
-  (defun my/open-config-file ()
-    (interactive)
-    (get-buffer-create (find-file emacs-config-file)))
-
-  (defun my/open-dotemacs ()
-    (interactive)
-    (get-buffer-create (find-file user-init-file)))
-
-  (keymap-global-set "C-c f p" #'my/open-config-file)
-  (keymap-global-set "C-c f e" #'my/open-dotemacs)
-#+end_src
-*** Scratchpadding
-#+begin_src emacs-lisp
-  (keymap-global-set "C-c f s" #'scratch-buffer)
-#+end_src
-*** Move pointer to new window
-#+begin_src emacs-lisp
-  (defun my/split-window-right ()
-    (interactive)
-    (select-window (split-window-right)))
-
-  (defun my/split-window-below ()
-=======
   (keymap-global-set "s-SPC" #'my/toggle-input-method)
   (add-hook 'emacs-startup-hook #'my/initialise-input-method)
 #+end_src
@@ -1220,117 +818,10 @@ also, more often than not, when I split a window, I also want the new window as 
     (select-window (split-window-right)))
 
   (defun my/split-window-up ()
->>>>>>> 5e7a573 (update configuration)
     (interactive)
     (select-window (split-window-below)))
 
   (keymap-global-set "C-x 2" #'my/split-window-below)
-<<<<<<< HEAD
-  (keymap-global-set "C-x 3" #'my/split-window-right)
-#+end_src
-*** Move pointer to nth window
-#+begin_src emacs-lisp
-  (defun my/move-window-pointer (n)
-    (interactive "p")
-    (when (and current-prefix-arg (integerp n))
-    (select-window (winum-get-window-by-number n))))
-  (keymap-global-set "M-o" #'my/move-window-pointer)
-#+end_src
-*** Swap window states
-#+begin_src emacs-lisp
-  (keymap-global-set "C-x 4 s" #'window-swap-states)
-#+end_src
-*** New frame
-#+begin_src emacs-lisp
-  (keymap-global-set "C-x 5 n" #'make-frame)
-#+end_src
-** Find and replace
-#+begin_src emacs-lisp
-  (defun my/replace-region-content ()
-    (interactive
-     (replace-region-contents (region-beginning) (region-end) #'my/find-and-replace)))
-
-  (defun my/find-and-replace()
-    (interactive "r")
-     (let ((find (read-string "Find: "))
-  	 (replace (read-string "Replace: "))
-  	 (string (buffer-substring-no-properties (region-beginning) (region-end))))
-       (string-replace find replace string)))
-  
-  (keymap-global-set "C-x f" #'my/replace-region-content)
-#+end_src
-** helpful
-#+begin_src emacs-lisp
-  (use-package helpful
-    :ensure t
-    :demand t
-    :init
-    (global-set-key (kbd "C-h f") #'helpful-callable)
-
-    (global-set-key (kbd "C-h v") #'helpful-variable)
-    (global-set-key (kbd "C-h k") #'helpful-key)
-    (global-set-key (kbd "C-h x") #'helpful-command)
-    ;; Lookup the current symbol at point. C-c C-d is a common keybinding
-    ;; for this in lisp modes.
-    (global-set-key (kbd "C-c C-d") #'helpful-at-point)
-    
-    ;; Look up *F*unctions (excludes macros).
-    ;;
-    ;; By default, C-h F is bound to `Info-goto-emacs-command-node'. Helpful
-    ;; already links to the manual, if a function is referenced there.
-    (global-set-key (kbd "C-h F") #'helpful-function))
-#+end_src
-* Org Mode
-Honestly better than markdown tbh
-** Making org-mode look pretty
-*** Indentation
-#+begin_src emacs-lisp
-  (setq org-startup-indented t)
-#+end_src
-*** org-ibullets
-#+begin_src emacs-lisp
-  (use-package org-ibullets
-    :ensure t
-    :demand t
-    :commands org-ibullets-mode
-    :straight (org-ibullets
-             :type git
-             :host github
-             :repo "jamescherti/org-ibullets.el")
-    :hook
-    (org-mode . org-ibullets-mode))
-#+end_src
-*** org-modern-indent
-#+begin_src emacs-lisp
-   (use-package org-modern-indent
-     :ensure nil
-     :demand t
-     :straight (org-modern-indent :type git :host github :repo "jdtsmith/org-modern-indent")
-     :config
-     (add-hook 'org-mode-hook #'org-modern-indent-mode 90))
-#+end_src
-*** org-modern
-#+begin_src emacs-lisp
-  (use-package org-modern
-    :ensure t
-    :demand t
-    :config
-    (setq org-modern-hide-stars nil)
-    (setq org-modern-star 'replace)
-    (setq org-modern-block-fringe 2)
-    (setq org-modern-todo nil)
-    (setq org-modern-tag nil)
-    (setq org-modern-block-name t)
-    (setq org-modern-timestamp nil)
-    (setq org-modern-progress nil)
-    
-    (modify-all-frames-parameters
-     '((right-divider-width . 40)
-       (internal-border-width . 30)))
-    (dolist (face '(window-divider
-     		  window-divider-first-pixel
-     		  window-divider-last-pixel))
-=======
   (keymap-global-set "C-x 3" #'my/split-window-left)
 #+end_src
 
@@ -1496,7 +987,15 @@ I like to use ace-window and switchy-window
     :init    
     (switchy-window-minor-mode))
 #+end_src
-
+** secrets management
+#+begin_src emacs-lisp
+  (use-package plstore
+    :ensure t
+    :demand t
+    :config
+    (add-to-list 'plstore-encrypt-to "dania.moriazi01@khu.ac.kr")
+    (setq epg-pinentry-mode 'loopback))
+#+end_src
 ** org-mode
 now let's configure org mode
 #+begin_src emacs-lisp 
@@ -1510,7 +1009,7 @@ now let's configure org mode
     (setq org-return-follows-link t)
     (setq org-refile-allow-creating-parent-nodes 'confirm)
     (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
-    
+
     (keymap-global-set "C-c c" #'org-capture)
     (keymap-global-set "C-c l" #'org-store-link-props)
     (keymap-global-set "C-c a" #'org-agenda)
@@ -1576,15 +1075,10 @@ then, we make org mode aesthetically pleasing.
     (dolist (face '(window-divider
                     window-divider-first-pixel
                     window-divider-last-pixel))
->>>>>>> 5e7a573 (update configuration)
       (face-spec-reset-face face)
       (set-face-foreground face (face-attribute 'default :background)))
     (set-face-background 'fringe (face-attribute 'default :background))
 
-<<<<<<< HEAD
-=======
-    
->>>>>>> 5e7a573 (update configuration)
     (defun my/org-mode-level-font-size ()
       (set-face-attribute 'org-level-4 nil :inherit 'outline-4 :height 1.0)      
       (set-face-attribute 'org-level-3 nil :inherit 'outline-3 :height 1.1)      
@@ -1593,457 +1087,37 @@ then, we make org mode aesthetically pleasing.
       (set-face-attribute 'org-document-title nil :inherit 'outline-1 :height 1.4 :underline nil))
 
     (my/org-mode-level-font-size)
-<<<<<<< HEAD
-    
-    (setq
-     ;; Edit settings
-     org-auto-align-tags nil
-     org-tags-column 0
-     org-catch-invisible-edits 'show-and-error
-     org-special-ctrl-a/e t
-     org-insert-heading-respect-content t
-     
-     ;; Org styling, hide markup etc.
-     org-hide-emphasis-markers t
-     org-pretty-entities t
-     org-pretty-entities-include-sub-superscripts nil
-     org-agenda-tags-column 0
-     org-ellipsis "…")
-    (global-org-modern-mode))
-#+end_src
-
-** Functionality
-*** =M-RET=-may-not-split-line
-This drove me mad the first time I used org-mode
-#+begin_src emacs-lisp
-  (setq org-M-RET-may-split-line '((item . nil)))
-#+end_src
-*** Enabling =shift-select=
-#+begin_src emacs-lisp
-  (setq org-support-shift-select t)
-#+end_src
-*** org-appear
-#+begin_src emacs-lisp
-  (use-package org-appear
-    :ensure t
-    :demand t
-    :hook
-    (org-mode . org-appear-mode))
-#+end_src
-*** Set =org-refile= variables
-#+begin_src emacs-lisp
-  (setq org-refile-allow-creating-parent-nodes 'confirm)
-  (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
-#+end_src
-*** Enable =RET= to open links
-#+begin_src emacs-lisp
-  (setq org-return-follows-link t)
-#+end_src
-** Templates
-*** Saving bibtex citations
-#+begin_src emacs-lisp
-  (defun my/save-to-ref-bib (result)
-    (save-window-excursion
-      (find-file (concat org-directory "references.bib"))
-      (goto-char (point-max))
-      (let* ((citebib (plist-get result :citebib))
-  	     (title (plist-get result :title))
-  	     (fname (plist-get result :fname))
-  	     (abstract (plist-get result :abstract))
-  	     (url (plist-get result :url))
-  	     (download_path (concat "~/Downloads/" fname))
-  	     (save_path (concat "~/Documents/papers/" fname)))
-  	(unless (bibtex-search-entry title)
-  	  (goto-char (point-max))
-  	  (insert citebib)
-  	  (shell-command (concat "mv " download_path " " save_path))
-  	  (bibtex-set-field "abstract" abstract)
-  	  (bibtex-set-field "file" save_path))
-  	(save-buffer))))
-#+end_src
-*** Protocol capture to reading list
-#+begin_src emacs-lisp
-=======
     (global-org-modern-mode))
 
-  ;; additionally, since we enabled org-hide-emphasis-markers, we use org-appear to toggle viewing them when our pointer moves to said emphasis markers.
+  ;; and then we use org-appear to unhide the emphasis markers when hovered over
   (use-package org-appear
     :ensure t
     :hook
     (org-mode . org-appear-mode))
 #+end_src
-
-*** org-capture and org-protocol
-first, we set up our capture templates
-#+begin_src emacs-lisp 
-  (setq org-capture-templates
-        '(("m" "meeting" entry (file "meeting.org")
-  	 "* %t \n ** Discussion %? \n** Tasks \n")
-  	("i" "inbox" entry (file "inbox.org")
-  	 "* %u \n ** %?")
-  	("p" "capture" entry (file "capture-inbox.org")
-  	 "* %:annotation %u\n %i\n%?")
-  	("r" "weekly-report" entry (file "weekly-report.org")
-  	 "* %^{PROMPT}u \n ** 이번 주에 한 일\n%? \n** 다음 주에 할 일\n** 도움이 필요하거나 공유할 사항\n")
-  	("d" "daily-note" entry (file "daily.org")
-"* %u \n** Tasks [/] \n #+CATEGORY: Task %?\n** Log \n** Notes"
-  	 :immediate-finish t)))
-#+end_src
-
-I have two protocols: one for 'bookmarking' papers I find on the internet, and another to save bibtex references (because that's one of the more cumbersome parts of writing a paper).
-
-#+name: org-capture to reading list protocol
-#+begin_src emacs-lisp 
->>>>>>> 5e7a573 (update configuration)
-  (defun my/archive-paper (result)
-    (message "archive-paper called with: %S" result)
-    (my/save-to-ref-bib result)
-    (save-window-excursion
-      (find-file (concat org-directory "paper-listup.org"))
-      (goto-char (point-max))
-      (let* ((url (plist-get result :url))
-  	   (title (plist-get result :title))
-  	   (abstract (plist-get result :abstract))
-  	   (code-url (plist-get result :code_url)))
-        (insert (concat "** TOREAD " title "\n"))
-        (insert (s-concat ":PROPERTIES:\n"
-  			":RETRIEVED: "))
-  			(org-timestamp '(16))
-        (insert ":LINK: ")
-        (org-insert-link "ref:"
-  		       (format "ref:%s" url))
-        (insert "\n")
-        (when-let ((bibkey (plist-get result :bibkey)))
-  	(insert (s-concat ":BIBKEY: " bibkey "\n")))
-        (when code-url
-  	(insert (s-concat ":DATA: " code-url "\n")))
-        (insert (s-concat ":END:"
-  			"\n"
-  			"*** Abstract"
-  			"\n"
-  			abstract
-  			"\n")))
-      (save-buffer))
-    nil)
-#+end_src
-<<<<<<< HEAD
-*** Capture templates
-#+begin_src emacs-lisp
-  (setq org-capture-templates
-        '(("m" "meeting" entry (file "meeting.org")
-  	 "* %t \n ** Discussion %? \n** Tasks \n")
-  	("i" "inbox" entry (file "inbox.org")
-  	 "* %u \n ** %?")
-  	("p" "capture" entry (file "capture-inbox.org")
-  	 "* %:annotation %u\n %i\n%?")
-  	("r" "weekly-report" entry (file "weekly-report.org")
-  	 "* %^{PROMPT}u \n ** 이번 주에 한 일\n%? \n** 다음 주에 할 일\n** 도움이 필요하거나 공유할 사항\n")
-  	("d" "daily-note" entry (file "daily.org")
-"* %u \n** Tasks [/] \n #+CATEGORY: Task %?\n** Log \n** Notes"
-  	 :immediate-finish t)))
-#+end_src
-*** Custom protocols
-
-#+begin_src emacs-lisp
-=======
-
-#+name: org-capture to bibtex
-#+begin_src emacs-lisp 
-  (defun my/save-to-ref-bib (result)
-    (save-window-excursion
-      (find-file (concat org-directory "references.bib"))
-      (goto-char (point-max))
-      (let* ((citebib (plist-get result :citebib))
-  	     (title (plist-get result :title))
-  	     (fname (plist-get result :fname))
-  	     (abstract (plist-get result :abstract))
-  	     (url (plist-get result :url))
-  	     (download_path (concat "~/Downloads/" fname))
-  	     (save_path (concat "~/Documents/papers/" fname)))
-  	(unless (bibtex-search-entry title)
-  	  (goto-char (point-max))
-  	  (insert citebib)
-  	  (shell-command (concat "mv " download_path " " save_path))
-  	  (bibtex-set-field "abstract" abstract)
-  	  (bibtex-set-field "file" save_path))
-  	(save-buffer))))
-#+end_src
-
-then, we setup our org-protocol alist
-#+begin_src emacs-lisp 
->>>>>>> 5e7a573 (update configuration)
-  (setq org-protocol-protocol-alist
-        '(("archive papers"
-  	 :protocol "archive-papers"
-  	 :function my/archive-paper)
-  	("save refs"
-  	 :protocol "save-to-ref-bib"
-  	 :function my/save-to-ref-bib)))
-#+end_src
-<<<<<<< HEAD
-** Custom org-links
-*** Save Github repo links
-#+begin_src emacs-lisp
-  (defun my/gh-open (link _)
-    (browse-url (my/gh-expand-link link)))
-
-  (defun my/gh-expand-link (link)
-    (if (string-search "#" link)
-        (progn (if (string-search ":#" link)
-  		 (apply #'format "https://github.com/%s/pull/%s" (my/gh-parse-link link))
-  	       (apply #'format "https://github.com/%s/issues/%s" (my/gh-parse-link link))))
-      (if (string-search ":" (string-remove-prefix "gh:" link))
-  	(apply #'format "https://github.com/%s/tree/%s" (my/gh-parse-link link))
-        (format "https://github.com/%s" link))))
-
-  (defun my/gh-export (link description backend info)
-    (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
-        (let ((link (org-element-create
-  		   'link (list :type "https"
-  			       :path (my/gh-expand-link link)))))
-  	(funcall transcode-link link desc info))
-      (concat "gh:" link)))
-
-  (defun my/get-sep (link)
-    (if (string-search "#" link)
-        (if (string-search ":#" link)
-  	  ":#" "#")
-      ":"))
-
-  (defun my/get-entry-type (link)
-    (if (string= (my/get-sep link) ":#")
-        "pr"
-      "issue"))
-
-  (defun my/gh-parse-link (link) 
-    (let ((parts (string-split (string-remove-prefix "gh:" link) (my/get-sep link) t)))
-      parts))
-
-  (defun my/gh-link-description (link description)
-    (or description
-        (if (string-search "#" link)
-  	  (progn (let* ((repo (nth 0 (my/gh-parse-link link)))
-  			(id (nth 1 (my/gh-parse-link link)))
-  			(entry (my/get-entry-type link)))
-  		   (format "%s: %s" (string-replace ":#" "#" (string-remove-prefix "gh:" link)) (my/gh-get-entry-title repo entry id))))
-  	(if (string-search ":" (string-remove-prefix "gh:" link))
-  	    (string-remove-prefix "gh:" link)
-  	  link))))
-
-  (defun my/gh-get-entry-title (repo entry id)
-    (let ((cmd (format "gh %s view %s --repo %s --json title"
-  		     (shell-quote-argument entry)
-  		     (shell-quote-argument id)
-  		     (shell-quote-argument repo))))
-      (alist-get 'title (json-parse-string (shell-command-to-string cmd) :object-type 'alist))))
-    
-  (defun my/gh-store-link (link &optional description)
-    (org-link-store-props
-     :type "gh"
-     :link (my/gh-expand-link link)
-     :description (my/gh-link-description link description)))
-
-  (org-link-set-parameters "gh"
-  			 :follow #'my/gh-open
-  			 :export #'my/gh-export
-  			 :store-link #'my/gh-store-link
-  			 :insert-description #'my/gh-link-description)
-#+end_src
-*** Save HF repo links
-#+begin_src emacs-lisp
-  (defun hf-open (repo &optional repo-type)
-    (interactive
-     (list (completing-read "Choose repo type: " '("model" "dataset"))))
-    (browse-url (hf-expand-link repo repo-type)))
-
-  (defun hf-expand-link (repo &optional repo-type)
-    (if (string= repo-type "dataset")
-        (format "https://huggingface.co/datasets/%s" repo)
-      (format "https://huggingface/co/%s" repo)))
-
-  (defun hf-export (repo description backend info &optional repo-type)
-    (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
-        (let ((link (org-element-create
-  		   'link (list :type "https"
-  			       :path (hf-expand-link repo repo-type)))))
-  	(funcall transcode-link link desc info))
-      (concat "hf:" link)))
-
-  (defun hf-description (repo &optional description)
-    (or description repo))
-
-  (defun hf-store-link (repo &optional description repo-type)
-    (org-link-store-props
-     :type "hf"
-     :link (hf-expand-link repo repo-type)
-     :description description))
-
-  (org-link-set-parameters "hf"
-  			 :follow #'hf-open
-  			 :export #'hf-export
-  			 :insert-description #'hf-description
-  			 :store-link #'hf-store-link)
-#+end_src
-*** Other git-based repos
-#+begin_src emacs-lisp
-  (defun my/repo-open (link _)
-    (browse-url (my/repo-expand-link link)))
-
-  (setq repo-list '("codeberg.org"))
-
-  (defun my/repo-domain ()
-    (interactive
-     (let ((repo-type (completing-read "Repo domain: " repo-list)))
-       (when (not (member repo-type repo-list))
-         (add-to-list 'repo-list (list repo-type)))
-       repo-type)))
-
-  (defun my/repo-expand-link (link)
-    (interactive "r")
-    (let ((domain (my/repo-domain)))
-      (if (string-search ":" (string-remove-prefix "repo:" link))
-  	(apply #'format (concat "https://" domain "/%s/tree/%s") (my/repo-parse-link link))
-        (format "https://%s/%s" domain link))))
-    
-  (defun my/repo-export (link description backend info)
-    (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
-        (let ((link (org-element-create
-  		   'link (list :type "https"
-  			       :path (my/repo-expand-link link)))))
-  	(funcall transcode-link link desc info))
-      (concat "repo:" link)))
-
-  (defun my/get-sep (link)
-    (if (string-search "#" link)
-        (if (string-search ":#" link)
-  	  ":#" "#")
-      ":"))
-
-  (defun my/get-entry-type (link)
-    (if (string= (my/get-sep link) ":#")
-        "pr"
-      "issue"))
-
-  (defun my/repo-parse-link (link) 
-    (let ((parts (string-split (string-remove-prefix "repo:" link) (my/get-sep link) t)))
-      parts))
-
-  (defun my/repo-link-description (link description)
-    (or description
-        (if (string-search ":" (string-remove-prefix "repo:" link))
-  	  (string-remove-prefix "repo:" link)
-  	link)))
-
-  (defun my/repo-store-link (link &optional description)
-    (org-link-store-props
-     :type "repo"
-     :link (my/repo-expand-link link)
-     :description (my/repo-link-description link description)))
-
-  (org-link-set-parameters "repo"
-  			 :follow #'my/repo-open
-  			 :export #'my/repo-export
-  			 :store-link #'my/repo-store-link
-  			 :insert-description #'my/repo-link-description)
-#+end_src
-*** Citation links
-#+begin_src emacs-lisp
-  (defun my/ref-link--open-link (link _)
-    (org-link-open-from-string link))
-
-  (defun my/ref-link--parse-id (link)
-    (let* ((id (string-remove-suffix "/" link))
-  	 (id (car (last (split-string id "/"))))
-  	 (id (string-remove-suffix ".pdf" id)))
-      id))
-
-  (defun my/ref-link--export-link (link description backend info)
-    (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
-        (let ((link (org-element-create
-  		   'link (list :type "https"
-  			       :path link))))
-  	(funcall transcode-link link desc info))
-      (concat "ref:" (my/ref-link--parse-id link))))
-
-  (defun my/ref-link--insert-description (link description)
-    (or description
-        (let ((id (my/ref-link--parse-id link)))
-  	(format "ref:%s" id))))
-
-  (defun my/ref-link--store-link (link &optional description)
-    (org-link-store-props
-     :type "ref"
-     :link link
-     :description (my/ref-link--insert-description link description)))
-
-  (org-link-set-parameters "ref"
-  			 :follow #'my/ref-link--open-link
-  			 :export #'my/ref-link--export-link
-  			 :store-link #'my/ref-link--store-link
-  			 :insert-description #'my/ref-link--insert-description)
-#+end_src
-** Org node 
-#+begin_src emacs-lisp
-  (use-package org-mem
-    :config
-    (org-mem-updater-mode))
-
-  (use-package org-node
-    :init
-    (keymap-global-set "C-c o n" org-node-global-prefix-map)
-    (with-eval-after-load 'org
-      (keymap-set org-mode-map "C-c o n" org-node-org-prefix-map))
-    :config
-    (org-node-cache-mode)
-
-    (setq org-node-backlink-do-drawers t)
-    (org-node-backlink-mode)
-    
-    (add-to-list 'org-capture-templates
-  	     '(("e" "Capture entry into ID node"
-  		entry (function org-node-capture-target) "* %?")
-  	       
-  	       ("p" "Capture plain text into ID node"
-  		plain (function org-node-capture-target) nil
-  		:empty-lines-after 1)
-  	       
-  	       ("j" "Jump to ID node"
-  		plain (function org-node-capture-target) nil
-  		:prepend t
-  		:immediate-finish t
-  		:jump-to-captured t)
-  	       
-  	       ;; Sometimes handy after `org-node-insert-link', to
-  	       ;; make a stub you plan to fill in later, without
-  	       ;; leaving the current buffer for now
-  	       ("q" "Make quick stub ID node"
-  		plain (function org-node-capture-target) nil
-  		:immediate-finish t)))
-
-    (setq org-node-creation-fn #'org-capture))
-#+end_src
-** org-gcal
-#+begin_src emacs-lisp
-=======
 
 *** org-links
 I have four custom links (three for repo-type sites and one for citations).
 1. github
    #+begin_src emacs-lisp 
-          (defun my/gh-open (link _)
+     (defun my/gh-open (link _)
        (browse-url (my/gh-expand-link link)))
 
      (defun my/gh-expand-link (link)
        (if (string-search "#" link)
            (progn (if (string-search ":#" link)
-     		 (apply #'format "https://github.com/%s/pull/%s" (my/gh-parse-link link))
-     	       (apply #'format "https://github.com/%s/issues/%s" (my/gh-parse-link link))))
+     		 (apply #'format "https://github.com/%s/pull/%s"
+     			(my/gh-parse-link link))
+     	       (apply #'format "https://github.com/%s/issues/%s"
+     		      (my/gh-parse-link link))))
          (if (string-search ":" (string-remove-prefix "gh:" link))
      	(apply #'format "https://github.com/%s/tree/%s" (my/gh-parse-link link))
            (format "https://github.com/%s" link))))
 
      (defun my/gh-export (link description backend info)
-       (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+       (if-let ((transcode-link (alist-get
+     			    'link (org-export-backend-transcoders
+     				   (org-export-get-backend backend)))))
            (let ((link (org-element-create
      		   'link (list :type "https"
      			       :path (my/gh-expand-link link)))))
@@ -2062,7 +1136,9 @@ I have four custom links (three for repo-type sites and one for citations).
          "issue"))
 
      (defun my/gh-parse-link (link) 
-       (let ((parts (string-split (string-remove-prefix "gh:" link) (my/get-sep link) t)))
+       (let ((parts
+     	 (string-split (string-remove-prefix "gh:" link)
+     		       (my/get-sep link) t)))
          parts))
 
      (defun my/gh-link-description (link description)
@@ -2071,7 +1147,10 @@ I have four custom links (three for repo-type sites and one for citations).
      	  (progn (let* ((repo (nth 0 (my/gh-parse-link link)))
      			(id (nth 1 (my/gh-parse-link link)))
      			(entry (my/get-entry-type link)))
-     		   (format "%s: %s" (string-replace ":#" "#" (string-remove-prefix "gh:" link)) (my/gh-get-entry-title repo entry id))))
+     		   (format "%s: %s"
+     			   (string-replace ":#" "#"
+     					   (string-remove-prefix "gh:" link))
+     			   (my/gh-get-entry-title repo entry id))))
      	(if (string-search ":" (string-remove-prefix "gh:" link))
      	    (string-remove-prefix "gh:" link)
      	  link))))
@@ -2081,8 +1160,10 @@ I have four custom links (three for repo-type sites and one for citations).
      		     (shell-quote-argument entry)
      		     (shell-quote-argument id)
      		     (shell-quote-argument repo))))
-         (alist-get 'title (json-parse-string (shell-command-to-string cmd) :object-type 'alist))))
-       
+         (alist-get 'title
+     	       (json-parse-string
+     		(shell-command-to-string cmd) :object-type 'alist))))
+
      (defun my/gh-store-link (link &optional description)
        (org-link-store-props
         :type "gh"
@@ -2094,23 +1175,24 @@ I have four custom links (three for repo-type sites and one for citations).
      			 :export #'my/gh-export
      			 :store-link #'my/gh-store-link
      			 :insert-description #'my/gh-link-description)
-     
    #+end_src
    
 2. huggingface
    #+begin_src emacs-lisp 
-          (defun hf-open (repo &optional repo-type)
+     (defun hf-open (repo &optional repo-type)
        (interactive
         (list (completing-read "Choose repo type: " '("model" "dataset"))))
        (browse-url (hf-expand-link repo repo-type)))
 
      (defun hf-expand-link (repo &optional repo-type)
-       (if (string= repo-type "dataset")
+
            (format "https://huggingface.co/datasets/%s" repo)
          (format "https://huggingface/co/%s" repo)))
 
      (defun hf-export (repo description backend info &optional repo-type)
-       (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+       (if-let ((transcode-link (alist-get
+     			    'link (org-export-backend-transcoders
+     				   (org-export-get-backend backend)))))
            (let ((link (org-element-create
      		   'link (list :type "https"
      			       :path (hf-expand-link repo repo-type)))))
@@ -2135,7 +1217,7 @@ I have four custom links (three for repo-type sites and one for citations).
 
 3. other git-based repos
    #+begin_src emacs-lisp 
-          (defun my/repo-open (link _)
+     (defun my/repo-open (link _)
        (browse-url (my/repo-expand-link link)))
 
      (setq repo-list '("codeberg.org"))
@@ -2151,11 +1233,14 @@ I have four custom links (three for repo-type sites and one for citations).
        (interactive "r")
        (let ((domain (my/repo-domain)))
          (if (string-search ":" (string-remove-prefix "repo:" link))
-     	(apply #'format (concat "https://" domain "/%s/tree/%s") (my/repo-parse-link link))
+     	(apply #'format
+     	       (concat "https://" domain "/%s/tree/%s") (my/repo-parse-link link))
            (format "https://%s/%s" domain link))))
        
      (defun my/repo-export (link description backend info)
-       (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+       (if-let ((transcode-link (alist-get
+     			    'link (org-export-backend-transcoders
+     				   (org-export-get-backend backend)))))
            (let ((link (org-element-create
      		   'link (list :type "https"
      			       :path (my/repo-expand-link link)))))
@@ -2198,7 +1283,7 @@ I have four custom links (three for repo-type sites and one for citations).
    
 4. citations
    #+begin_src emacs-lisp 
-          (defun my/ref-link--open-link (link _)
+     (defun my/ref-link--open-link (link _)
        (org-link-open-from-string link))
 
      (defun my/ref-link--parse-id (link)
@@ -2208,7 +1293,9 @@ I have four custom links (three for repo-type sites and one for citations).
          id))
 
      (defun my/ref-link--export-link (link description backend info)
-       (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+       (if-let ((transcode-link (alist-get
+     			    'link (org-export-backend-transcoders
+     				   (org-export-get-backend backend)))))
            (let ((link (org-element-create
      		   'link (list :type "https"
      			       :path link))))
@@ -2231,21 +1318,19 @@ I have four custom links (three for repo-type sites and one for citations).
      			 :export #'my/ref-link--export-link
      			 :store-link #'my/ref-link--store-link
      			 :insert-description #'my/ref-link--insert-description)
-     
-   #+end_src
 
+   #+end_src
+   
 *** org-gcal
 google calendar integration
 #+begin_src emacs-lisp 
->>>>>>> 5e7a573 (update configuration)
-  (setq org-gcal-client-id (auth-source-pick-first-password :host "org-gcal"
-  							    :user "dania.moriazi01@khu.ac.kr^id"))
-  (setq org-gcal-client-secret (auth-source-pick-first-password :host "org-gcal"
-  							      :user "dania.moriazi01@khu.ac.kr^secret"))
-<<<<<<< HEAD
-=======
+  (setq org-gcal-client-id
+        (auth-source-pick-first-password :host "org-gcal"
+                                         :user "dania.moriazi01@khu.ac.kr^id"))
+  (setq org-gcal-client-secret
+        (auth-source-pick-first-password :host "org-gcal"
+                                         :user "dania.moriazi01@khu.ac.kr^secret"))
 
->>>>>>> 5e7a573 (update configuration)
   (use-package org-gcal
     :ensure t
     :demand t
@@ -2253,18 +1338,6 @@ google calendar integration
     :config
     (setq org-gcal-fetch-file-alist '(("dania.moriazi01@khu.ac.kr" . "/home/dania/org/calendar.org"))))
 #+end_src
-<<<<<<< HEAD
-* Emacs as an IDE
-** Language support
-*** Org Babel
-#+begin_src emacs-lisp
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((python . t)
-       (emacs-lisp . t)
-       (org . t)
-       (latex . t)))
-=======
 
 *** org-babel languages
 because literate programming.
@@ -2275,7 +1348,6 @@ because literate programming.
      (emacs-lisp . t)
      (org . t)
      (latex . t)))
->>>>>>> 5e7a573 (update configuration)
 
   (defun do-org-confirm-babel-evaluations (lang body)
     (not
@@ -2284,9 +1356,6 @@ because literate programming.
       (string= lang "calc"))))
   (setq-local org-confirm-babel-evaluate 'do-org-confirm-babel-evaluations)
 #+end_src
-<<<<<<< HEAD
-*** Treesit
-=======
 
 *** org-projectile
 now known as org-capture-project
@@ -2307,7 +1376,6 @@ now known as org-capture-project
 first, we configure the programming languages we want to use. I primarily use python but sometimes I use docker as well.
 
 the most important thing is tree-sitter.
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package treesit-auto
     :ensure t
@@ -2346,19 +1414,6 @@ the most important thing is tree-sitter.
   (use-package tree-sitter-langs
     :ensure t
     :after tree-sitter
-<<<<<<< HEAD
-    ;; :custom
-    ;; (major-mode-remap-alist
-    ;;   '((python-mode . python-ts-mode)
-    ;;     (rust-mode . rust-ts-mode)
-    ;;     (javascript-mode . js-ts-mode)
-    ;;     (js-mode . js-ts-mode)
-    ;;     (typescript-mode . typescript-ts-mode)
-    ;;     (ts-mode . typescript-ts-mode)
-    ;;     (c++-mode . c++-ts-mode)
-    ;;     (ruby-mode . ruby-ts-mode)))
-=======
->>>>>>> 5e7a573 (update configuration)
     :config
     (puthash 'python-ts-mode 'python tree-sitter-major-mode-language-table)
     (puthash 'c++-ts-mode 'cpp tree-sitter-major-mode-language-table)
@@ -2366,35 +1421,7 @@ the most important thing is tree-sitter.
     (puthash 'js-ts-mode 'js tree-sitter-major-mode-language-table)
     (puthash 'typescript-ts-mode 'ts tree-sitter-major-mode-language-table)
     (puthash 'ruby-ts-mode 'ruby tree-sitter-major-mode-language-table))
-<<<<<<< HEAD
 #+end_src
-*** Python
-**** Python env: Mamba
-I use mamba as my main python interpreter
-#+begin_src emacs-lisp
-  (use-package conda
-    :ensure t
-    :demand t
-    :config
-    (conda-env-initialize-interactive-shells)
-    (conda-env-initialize-eshell)
-    (conda-env-autoactivate-mode t)
-    (custom-set-variables '(conda-anaconda-home "~/miniforge3/"))
-    (conda-env-activate "base")
-
-    (add-hook 'find-file-hook (lambda ()
-  			      (when (bound-and-true-p conda-project-env-path)
-  				(conda-env-activate-for-buffer)))))
-#+end_src
-**** Python for emacs
-#+begin_src emacs-lisp
-  (use-package python
-=======
-
-#+end_src
-
-now, we can configure each programming language individually.
-
 *** python
 I use mamba as my primary python environment.
 #+begin_src emacs-lisp 
@@ -2425,7 +1452,6 @@ I use mamba as my primary python environment.
 then we configure emacs' python-mode.
 #+begin_src emacs-lisp
     (use-package python
->>>>>>> 5e7a573 (update configuration)
     :ensure nil
     :after tree-sitter
     :mode
@@ -2433,13 +1459,8 @@ then we configure emacs' python-mode.
      ("\\.pyi\\'" . python-ts-mode)
      ("\\.pyw\\'" . python-ts-mode))
     :hook
-<<<<<<< HEAD
-    (python-mode . eglot-ensure)
-    (python-ts-mode . eglot-ensure)
-=======
     (python-mode . lsp-deferred)
     (python-ts-mode . lsp-deferred)
->>>>>>> 5e7a573 (update configuration)
     (python-mode . subword-mode)
     (python-ts-mode . subword-mode)
     (python-ts-mode . python-mode)
@@ -2466,16 +1487,10 @@ then we configure emacs' python-mode.
         ;; No tree-sitter, do nothing or fallback to another mode.
         ...))))
 #+end_src
-<<<<<<< HEAD
-*** IPython
-#+begin_src emacs-lisp
-  (use-package code-cells
-=======
 
 tbh, I never really liked using jupyter lab so we use =code-cells=.
 #+begin_src emacs-lisp
     (use-package code-cells
->>>>>>> 5e7a573 (update configuration)
     :ensure t
     :hook
     (code-cells-mode . run-python)
@@ -2485,14 +1500,8 @@ tbh, I never really liked using jupyter lab so we use =code-cells=.
   	("M-p" . code-cells-backward-cell)
   	("M-n" . code-cells-forward-cell)
   	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
-<<<<<<< HEAD
-    :config
-=======
-    
     :config
     (add-to-list 'code-cells-convert-ipynb-style '("jupytext" "to" "py:percent"))
-    
->>>>>>> 5e7a573 (update configuration)
     (defun my/code-cells-new-cell ()
       (interactive)
       (newline 2)
@@ -2511,37 +1520,23 @@ tbh, I never really liked using jupyter lab so we use =code-cells=.
     
     (add-hook 'python-mode-hook 'code-cells-mode-maybe))
 #+end_src
-<<<<<<< HEAD
-*** Docker
-#+begin_src emacs-lisp
-=======
 
 *** docker
 for the rare occasion I do use docker:
 #+begin_src emacs-lisp 
->>>>>>> 5e7a573 (update configuration)
   (use-package dockerfile-ts-mode
     :ensure nil
     :defer t
     :mode
     (("Dockerfile\\'" . dockerfile-ts-mode)
      ("\\.dockerfile\\'" . dockerfile-ts-mode))
-<<<<<<< HEAD
-    :hook (dockerfile-ts-mode . eglot-ensure))
-#+end_src
-*** Typescript & Javascript
-#+begin_src emacs-lisp
-  (use-package typescript-ts-mode
-=======
     :hook
     (dockerfile-ts-mode . lsp-deferred))
 #+end_src
-
 *** typescript and javascript
 I rarely use these two but when I do.
 #+begin_src emacs-lisp
     (use-package typescript-ts-mode
->>>>>>> 5e7a573 (update configuration)
     :ensure nil
     :defer t
     :mode
@@ -2549,11 +1544,7 @@ I rarely use these two but when I do.
      ("\\.mts\\'" . typescript-ts-mode)
      ("\\.cts\\'" . typescript-ts-mode))
     :hook
-<<<<<<< HEAD
-    (typescript-ts-mode . eglot-ensure)
-=======
     (typescript-ts-mode . lsp-deferred)
->>>>>>> 5e7a573 (update configuration)
     (typescript-ts-mode . subword-mode))
 
   (use-package tsx-ts-mode
@@ -2563,11 +1554,7 @@ I rarely use these two but when I do.
     (("\\.tsx\\'" . tsx-ts-mode)
      ("\\.jsx\\'" . tsx-ts-mode))
     :hook
-<<<<<<< HEAD
-    (tsx-ts-mode . eglot-ensure)
-=======
     (tsx-ts-mode . lsp-deferred)
->>>>>>> 5e7a573 (update configuration)
     (tsx-ts-mode . subword-mode))
 
   (use-package js-ts-mode
@@ -2578,60 +1565,6 @@ I rarely use these two but when I do.
      ("\\.mjs\\'" . js-ts-mode)
      ("\\.cjs\\'" . js-ts-mode))
     :hook
-<<<<<<< HEAD
-    (js-ts-mode . eglot-ensure)
-    (js-ts-mode . subword-mode))
-#+end_src
-** Completions
-*** Eglot
-#+begin_src emacs-lisp
-	(use-package eglot
-	  :ensure nil
-	  :commands (eglot-ensure eglot-rename eglot-format-buffer)
-	  :bind
-	  (:map eglot-mode-map
-		("C-c l r" . eglot-rename)
-		("C-c l f" . eglot-format-buffer)
-		("C-c l a" . eglot-code-actions)
-		("C-c l h" . eldoc))
-	  :hook
-	  (prog-mode . eglot-ensure)
-	  (sh-mode . eglot-ensure)
-	  (bash-ts-mode . eglot-ensure))
-
-	(use-package flycheck-eglot
-	  :ensure t
-	  :after (flycheck eglot)
-	  :config (global-flycheck-eglot-mode 1))
-#+end_src
-** Other functions
-*** DONE term and treemacs
-#+begin_src emacs-lisp
-  (use-package term
-    :config
-    (term-mode)
-    :demand t)
-
-  (use-package treemacs-nerd-icons
-    :ensure t)
-
-  (use-package treemacs
-    :ensure t
-    :after treemacs-nerd-icons
-    :demand t
-    :bind
-    (:map treemacs-mode-map
-  	("C-c M" . conda-env-activate))
-    :init
-    (treemacs-load-theme "nerd-icons")
-    :config
-    (treemacs-projectile))
-
-  (keymap-global-set "C-c t o" #'treemacs-select-window)
-  (keymap-global-set "C-c t t" #'treemacs)
-#+end_src
-*** Git
-=======
     (js-ts-mode . lsp-deferred)
     (js-ts-mode . subword-mode))
 #+end_src
@@ -2758,36 +1691,31 @@ I like to use undo-tree (and you will see why I put this under the ide section).
 #+end_src
 
 magit is probably one of the best packages there is.
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
-  (use-package transient
-    :ensure t)
+    (use-package transient
+      :ensure t)
 
-  (use-package pinentry
-    :ensure t
-    :config
-    (pinentry-start))
+    (use-package pinentry
+      :ensure t
+      :config
+      (pinentry-start))
 
-  (use-package magit
-    :ensure t
-    :demand t
-    :bind
-    (("C-x g" . magit-status)
-     ("C-x M-g" . magit-dispatch)
-     ("C-c M-g" . magit-file-dispatch))
-    :config
-    (remove-hook 'server-switch-hook 'magit-commit-diff)
-    (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff))
+    (use-package magit
+      :ensure t
+      :demand t
+      :bind
+      (("C-x g" . magit-status)
+       ("C-x M-g" . magit-dispatch)
+       ("C-c M-g" . magit-file-dispatch))
+      :config
+      (remove-hook 'server-switch-hook 'magit-commit-diff)
+      (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff))
 
-  (use-package magit-lfs
-    :ensure t
-    :pin melpa
-    :after magit
-    :demand t)
-<<<<<<< HEAD
-#+end_src
-*** Flycheck
-=======
+    (use-package magit-lfs
+      :ensure t
+      :pin melpa
+      :after magit
+      :demand t)
 
   (use-package diff-hl
     :ensure t
@@ -2801,37 +1729,26 @@ magit is probably one of the best packages there is.
 #+end_src
 
 I like to use flycheck for on-the-fly syntax checking.
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package flycheck
     :ensure t
+    :custom
+    (flycheck-idle-change-delay 5)
+    (flycheck-idle-buffer-switch-delay 5)
+    (flycheck-check-syntax-automatically '(save idle-change mode-enabled))
     :config
-    (setq flycheck-idle-change-delay 5)
-    (setq flycheck-idle-buffer-switch-delay 5)
-    (setq flycheck-check-syntax-automatically '(save idle-change mode-enabled))
     (global-flycheck-mode))
 
   (use-package flycheck-posframe
     :ensure t
     :after flycheck
-<<<<<<< HEAD
-    :if (display-graphic-p)
-=======
     :if (or (featurep 'tty-child-frames) (display-graphic-p))
->>>>>>> 5e7a573 (update configuration)
     :init
     (setq flycheck-posframe-border-width 16)
     :config
     (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode)
     (flycheck-posframe-configure-pretty-defaults))
 #+end_src
-<<<<<<< HEAD
-*** eldocs
-#+begin_src emacs-lisp
-  (use-package eldoc-box
-  :ensure t
-  :if (display-graphic-p)
-=======
 
 and also eldoc and eldoc-box
  #+begin_src emacs-lisp
@@ -2843,7 +1760,6 @@ and also eldoc and eldoc-box
   (use-package eldoc-box
   :ensure t
   :if (or (featurep 'tty-child-frames) (display-graphic-p))
->>>>>>> 5e7a573 (update configuration)
   :bind
   (("C-<prior>" . eldoc-box-scroll-down)
    ("C-<next>"  . eldoc-box-scroll-up))
@@ -2857,71 +1773,16 @@ and also eldoc and eldoc-box
     (pcase-let ((`(,_left ,right ,top) eldoc-box-offset))
       (cons (- (frame-outer-width) width right)
   	  top)))
-<<<<<<< HEAD
-  
   (setq eldoc-box-position-function #'my/eldoc-box--always-frame-top-right))
 #+end_src
-*** codemetrics
-=======
-
-  (setq eldoc-box-position-function #'my/eldoc-box--always-frame-top-right))
- #+end_src
 
 as a way to improve my code writing, I use codemetrics to evaluate my code complexity (with the aim of reducing the complexity)
->>>>>>> 5e7a573 (update configuration)
+
 #+begin_src emacs-lisp
   (use-package codemetrics
     :ensure t
     :straight (codemetrics :type git :host github :repo "jcs-elpa/codemetrics")
     :hook
-<<<<<<< HEAD
-    (eglot-server-initialized . codemetrics-mode))
-#+end_src
-* EAF
-#+begin_src emacs-lisp
-  ;; (use-package eaf
-  ;;   :load-path "~/.emacs.d/site-lisp/emacs-application-framework"
-  ;;   :defer t
-  ;;   :custom
-  ;;   ;; See https://github.com/emacs-eaf/emacs-application-framework/wiki/Customization
-  ;;   (setq eaf-apps-to-install '("eaf-browser" "eaf-pdf-viewer" "eaf-jupyter" "eaf-terminal" "eaf-git"))
-  ;;   (eaf-browser-continue-where-left-off t)
-  ;;   (eaf-browser-enable-adblocker t)
-  ;;   (browse-url-browser-function 'eaf-open-browser)
-  ;;   :config
-  ;;   (defalias 'browse-web #'eaf-open-browser)) ;; unbind, see more in the Wiki
-
-  ;; (use-package eaf-browser
-  ;;   :defer t
-  ;;   :config
-  ;;   (eaf-bind-key nil "M-q" eaf-browser-keybinding))
-  ;; (use-package eaf-pdf-viewer
-  ;;   :defer t
-  ;;   :config
-  ;;   (eaf-bind-key scroll_up "C-n" eaf-pdf-viewer-keybinding)
-  ;;   (eaf-bind-key scroll_down "C-p" eaf-pdf-viewer-keybinding))
-
-  ;; (use-package eaf-jupyter
-  ;;   :defer t)
-  ;; (use-package eaf-terminal
-  ;;   :defer t)
-  ;; (use-package eaf-git
-  ;;   :defer t)
-#+end_src
-* Bibliography Management with Elfeed
-Credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_research_workflow/][blog post]] I used for this.
-** Prep
-*** Load =helm-bibtex= and =arxiv-mode=
-#+begin_src emacs-lisp
-  (use-package helm-bibtex
-    :ensure t)
-  (use-package arxiv-mode
-    :ensure t)
-#+end_src
-*** Load =elfeed-score=
-#+begin_src emacs-lisp
-=======
-    (eglot-server-initialized . codemetrics-mode)
     (lsp-mode . codemetrics-mode))
 #+end_src
 
@@ -2999,7 +1860,6 @@ we first load arxiv-mode, elfeed and elfeed-score
   (use-package arxiv-mode
     :ensure t)
   
->>>>>>> 5e7a573 (update configuration)
   (use-package elfeed
     :ensure t
     :hook
@@ -3016,22 +1876,18 @@ we first load arxiv-mode, elfeed and elfeed-score
     (elfeed-score-load-score-file "~/.emacs.d/elfeed.score")
     (define-key elfeed-search-mode-map "=" elfeed-score-map))
 #+end_src
-<<<<<<< HEAD
 *** Set RSS feeds
 #+begin_src emacs-lisp
   (setq elfeed-feeds '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
 #+end_src
-** Set up =elfeed-search=
-*** Format =elfeed-search= output
-=======
 
+*** Format =elfeed-search= output
 then, we set up our RSS feeds
 #+begin_src emacs-lisp
   (setq elfeed-feeds        '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
 #+end_src
 
 for a better elfeed output:
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (defun concatenate-authors (authors-list)
     "Given AUTHORS-LIST, list of plists; return string of all authors concatenated."
@@ -3066,12 +1922,8 @@ for a better elfeed output:
   (setq elfeed-search-date-format '("%y-%m-%d" 10 :left))
   (setq elfeed-search-title-max-width 110)
 #+end_src
-<<<<<<< HEAD
-*** Fetch arXiv paper from elfeed entry and save to reading list
-=======
 
 now we can store our entry to our references file:
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (defun my/elfeed-entry-to-arxiv ()
     (interactive)
@@ -3085,11 +1937,8 @@ now we can store our entry to our references file:
         (arxiv-get-pdf-add-bibtex-entry matched-arxiv-number arxiv_bib arxiv_pdf_loc)
         ;; Now, we are updating the most recent bib file with the pdf location
         (message "Update bibtex with pdf file location")
-<<<<<<< HEAD
-        (save-window-excursion
-=======
+
         (save-excursion
->>>>>>> 5e7a573 (update configuration)
                 ;; Get the bib file
                 (find-file arxiv_bib)
                 ;; get to last line
@@ -3108,23 +1957,17 @@ now we can store our entry to our references file:
                         (setq last-arxiv-title title)
                         (save-buffer)
                         )))
-<<<<<<< HEAD
-        (save-window-excursion
-=======
+
         (save-excursion
->>>>>>> 5e7a573 (update configuration)
           (find-file (concat org-directory "papers.org"))
           (goto-char (point-max))
           (insert (format "** TODO Read paper (cite:%s) %s" last-arxiv-key last-arxiv-title))
           (save-buffer))
   	)))
 #+end_src
-<<<<<<< HEAD
-*** Configure variables and key bindings
-=======
 
 and we configure the variables and keybindings.
->>>>>>> 5e7a573 (update configuration)
+
 #+begin_src emacs-lisp
   (setq arxiv_bib "~/org/references.bib")
   (setq arxiv_pdf_loc "~/Documents/papers/arxiv/")
@@ -3134,32 +1977,13 @@ and we configure the variables and keybindings.
   (setq bibtex-completion-bibliography (list arxiv_bib))
   (setq bibtex-completion-pdf-field "file")
 
-<<<<<<< HEAD
   (global-set-key (kbd "C-c n a") #'my/elfeed-entry-to-arxiv)
   (global-set-key (kbd "C-c n e") #'elfeed)
 #+end_src
-** Google Scholar
-#+begin_src emacs-lisp
-  (use-package engine-mode
-    :ensure t
-    :custom
-    (defengine google-scholar
-      "https://scholar.google.com/scholar?hl=en&as_sdt=0%2C5&q=%s"))
-#+end_src
-* Slack
-Now I can do nearly anything in emacs
-** Setting up
-*** Key bindings and authorisation
-=======
-  (keymap-global-set "C-c n a" #'my/elfeed-entry-to-arxiv)
-  (keymap-global-set "C-c n e" #'elfeed)
-#+end_src
 
 ** slack
-did I mention I want to reduce switching between applications?
-
+now I can do almost everything in emacs
 we load slack and also configure our channels and all that.
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package slack
     :bind (("C-c S K" . slack-stop)
@@ -3191,10 +2015,7 @@ we load slack and also configure our channels and all that.
   	 )
     :custom
     (slack-extra-subscribed-channels (mapcar 'intern (list "ldi-main" "ldi-graduate" "team-agentic-memory" "ai-server" "help-me" "ml-share" "agentic-memory")))
-<<<<<<< HEAD
-=======
     (slack-prefer-current-team t)
->>>>>>> 5e7a573 (update configuration)
     :config
     (slack-register-team
      :name "languagedatakhu"
@@ -3205,23 +2026,13 @@ we load slack and also configure our channels and all that.
   	    :host "languagedatakhu.slack.com"
   	    :user "dania.moriazi01@khu.ac.kr^cookie")
      :full-and-display-names t
-<<<<<<< HEAD
-     :default t
-     ))
-  
-  (setq slack-prefer-current-team t)
+     :default t ))
 #+end_src
 *** Parse message metadata
-#+begin_src emacs-lisp
-=======
-     :default t))
-#+end_src
-
 I also want to receive slack notifications on emacs.
 
 #+begin_src emacs-lisp
   ;; parse message metadata
->>>>>>> 5e7a573 (update configuration)
   (defun slack/parse-message-loc (title)
     (concat "#" (string-trim (nth 1 (split-string title "#")))))
 
@@ -3232,99 +2043,58 @@ I also want to receive slack notifications on emacs.
     (let* ((title (plist-get info :title))
   	 (message (plist-get info :message)))
       (string-trim (nth 1 (split-string message ":")))))
-<<<<<<< HEAD
-#+end_src
-*** Notifications
-Connecting Slack to org-agenda
-#+begin_src emacs-lisp
-=======
 
   ;; configure alert
->>>>>>> 5e7a573 (update configuration)
-  (defun my/slack-notify (info)
-    (let* ((channel (slack/parse-message-loc (plist-get info :title)))
-    	 (user (slack/parse-sender (plist-get info :message)))
-    	 (message (slack/parse-message info))
-    	 (pos (org-find-exact-headline-in-buffer channel)))
-      (unless (string-search "주간보고" message)
-        (write-region
-         (s-concat
-  	"** UNREAD "
-  	(format "<%s> %s : %s"
-    		(format-time-string "%Y-%m-%d %H:%M")
-    		channel
-    		user)
-  	"\n"
-  	(format "%s" message)
-  	"\n")
-         nil
-         (concat org-directory "slack.org")
-         t))))
-<<<<<<< HEAD
-  (use-package alert
-      :ensure t
-      :init
-      (setq alert-default-style 'message)
-      :config
-      (alert-define-style
-       'my/slack-alert
-       :title "org slack alerts"
-       :notifier (lambda (info)
-=======
+    (defun my/slack-notify (info)
+      (let* ((channel (slack/parse-message-loc (plist-get info :title)))
+      	 (user (slack/parse-sender (plist-get info :message)))
+      	 (message (slack/parse-message info))
+      	 (pos (org-find-exact-headline-in-buffer channel)))
+        (unless (string-search "주간보고" message)
+          (write-region
+           (s-concat
+    	"** UNREAD "
+    	(format "<%s> %s : %s"
+      		(format-time-string "%Y-%m-%d %H:%M")
+      		channel
+      		user)
+    	"\n"
+    	(format "%s" message)
+    	"\n")
+           nil
+           (concat org-directory "slack.org")
+           t))))
 
-  (use-package alert
-    :ensure t
-    :init
-    (setq alert-default-style 'message)
-    :config
-    (alert-define-style
-     'my/slack-alert
-     :title "org slack alerts"
-     :notifier (lambda (info)
->>>>>>> 5e7a573 (update configuration)
-    	       (if (get-buffer "slack.org")
-    		   (with-current-buffer "slack.org"
-    		     (save-buffer))
-    		 (with-current-buffer
-    		     (get-buffer-create (find-file (concat org-directory "slack.org")))
-    		   (save-buffer)))
-    	       (my/slack-notify info)))
-<<<<<<< HEAD
-      
-      (add-to-list 'alert-user-configuration
-    	       '(((:category . "slack")) my/slack-alert nil))
-      :hook (org-agenda-mode-hook . (lambda () (local-set-key (kbd "M") 'my/org-agenda-todo-archive))))
-
-    (defun my/save-slack ()
-      (interactive)
-      (save-excursion
-        (do-list (buf '("slack.org_archive" "slack.org"))
-=======
-    
-    (add-to-list 'alert-user-configuration
-    	       '(((:category . "slack")) my/slack-alert nil))
-    :hook (org-agenda-mode-hook . (lambda () (local-set-key (kbd "M") 'my/org-agenda-todo-archive))))
+    (use-package alert
+        :ensure t
+        :init
+        (setq alert-default-style 'message)
+        :config
+        (alert-define-style
+         'my/slack-alert
+         :title "org slack alerts"
+         :notifier (lambda (info)
+                     (if (get-buffer "slack.org")
+      		   (with-current-buffer "slack.org"
+      		     (save-buffer))
+      		 (with-current-buffer
+      		     (get-buffer-create (find-file (concat org-directory "slack.org")))
+      		   (save-buffer)))
+      	       (my/slack-notify info)))
+        
+        (add-to-list 'alert-user-configuration
+      	       '(((:category . "slack")) my/slack-alert nil))
+        :hook (org-agenda-mode-hook . (lambda () (local-set-key (kbd "M") 'my/org-agenda-todo-archive))))
 
   (defun my/save-slack ()
     (interactive)
     (save-excursion
       (do-list (buf '("slack.org_archive" "slack.org"))
->>>>>>> 5e7a573 (update configuration)
-    	     (set-buffer buf)
-    	     (if (and (buffer-file-name) (buffer-modified-p))
-    		 (basic-save-buffer)))))
+               (set-buffer buf)
+               (if (and (buffer-file-name) (buffer-modified-p))
+                   (basic-save-buffer)))))
 
-<<<<<<< HEAD
-    (defun my/org-agenda-todo-archive()
-      (interactive)
-      (org-agenda-todo 'done)
-      (org-agenda-archive)
-      (my/save-slack))
-#+end_src
-** Sending messages from emacs buffer
-*** Convert org-mode to mrkdwn
-After exporting org-mode to markdown using the built-in =org-export=, I pass the markdown output into a python script to then convert it into mrkdwn (slack-compatible markdown flavour)
-=======
+
   (defun my/org-agenda-todo-archive()
     (interactive)
     (org-agenda-todo 'done)
@@ -3332,9 +2102,9 @@ After exporting org-mode to markdown using the built-in =org-export=, I pass the
     (my/save-slack))
 #+end_src
 
-the chad thing to do is to send slack messages from emacs
->>>>>>> 5e7a573 (update configuration)
+the chad-dest thing to do is send messages to slack from emacs
 #+begin_src emacs-lisp
+  ;; first we convert org-mode to mrkdwn (markdown flavour used by slack)
   (defun my/org-to-slack-md ()
     (interactive)
     (goto-char (point))
@@ -3347,14 +2117,9 @@ the chad thing to do is to send slack messages from emacs
   			(shell-quote-argument slack-md))))
         (kill-buffer)
         (shell-command-to-string cmd))))
-<<<<<<< HEAD
-#+end_src
-*** Sending the message
-#+begin_src emacs-lisp
-=======
 
->>>>>>> 5e7a573 (update configuration)
-  (defun my/slack-send-message ()
+  ;; then we send the message
+   (defun my/slack-send-message ()
     (interactive)
     (let ((slack-msg (my/org-to-slack-md)))
       (save-window-excursion
@@ -3363,165 +2128,13 @@ the chad thing to do is to send slack messages from emacs
   	  (slack-if-let* ((buffer slack-current-buffer))
   	      (slack-buffer-send-message buffer slack-msg))
   	(print slack-msg)))))
-#+end_src
-<<<<<<< HEAD
-** Start server
-#+begin_src emacs-lisp
-  (global-set-key (kbd "C-c S p") #'my/slack-send-message)
-  (global-set-key (kbd "C-c S o") #'my/org-to-slack-md)
 
-  (add-hook 'emacs-startup-hook #'slack-start)
-#+end_src
-* Git
-** Foundationals
-*** Repo list
-#+begin_src emacs-lisp
-  (setq gh-repo-list '("daniazie/daniazie.github.io" "ldi-kyunghee/agentic-memory"))
-
-  (defun my/gh-select-repo ()
-    (interactive)
-     (let ((repo (completing-read "Select github repo: " gh-repo-list)))
-       (when (not (member repo gh-repo-list))
-         (add-to-list 'gh-repo-list (list repo)))
-       (format "%s" repo)))
-#+end_src
-** Fetch PRs and issues
-#+begin_src emacs-lisp
-  (defun my/time-convert-to-local (time-string)
-    (format-time-string "%Y-%m-%d %a %H:%M" (encode-time (parse-time-string time-string)) (car (current-time-zone))))
-
-  (defun my/gh-format-link (repo entry id)
-    (if (string= entry "pr")
-        (concat (format "%s" repo)
-  	      ":#"
-  	      (format "%s" id))
-      (concat (format "%s" repo)
-  	    "#"
-  	    (format "%s" id))))
-
-  (defun my/gh-insert-link (repo entry id)
-    (org-insert-link "gh:" (concat "gh:" (my/gh-format-link repo entry id))))
-
-  (defun my/convert-gfm-to-org (text)
-    (let ((text (shell-command-to-string (format "python %s --text %s --convert_from %s --convert_to %s"
-  				   (shell-quote-argument (file-truename "~/.emacs.d/configs/convert-text.py"))
-  				   (shell-quote-argument text)
-				     (shell-quote-argument "gfm")
-				     (shell-quote-argument "org")))))
-      (string-trim (string-replace "* " "** " text))))
-
-  (defun my/clean-body (body)
-    (shell-command-to-string (format "python %s --text %s --convert_from %s --convert_to %s"
-                                     (shell-quote-argument (file-truename "~/.emacs.d/configs/convert-text.py"))
-                                     (shell-quote-argument text)
-				     (shell-quote-argument "gfm")
-				     (shell-quote-argument "org"))))
-
-  (defun my/org-wrap-text-in-block (text backend)
-    (s-concat "#+begin_src " backend
-  	    "\n"
-  	    (my/clean-body text)
-  	    "#+end_src"))
-
-  (defun my/gh-insert-new-entry (entry repo id title body author state created-at)
-    (let ((pos (org-find-entry-with-id (my/gh-format-link repo entry id))))
-  	    (unless pos
-  	      (progn (goto-char (org-find-exact-headline-in-buffer "Open"))
-  		     (goto-char (org-end-of-subtree t))
-  		     (org-newline-and-indent)
-  		     (insert "** TODO ")
-  		     (my/gh-insert-link repo entry id)
-  		     (insert (s-concat "\n"
-  				       ":PROPERTIES:\n"
-  				       (format ":ID: %s\n" (my/gh-format-link repo entry id))
-  				       (format ":AUTHOR: %s\n" author)
-  				       (format ":CREATED: <%s>\n" (my/time-convert-to-local created-at))
-  				       (format ":STATE: %s\n" state)
-  				       ":END:\n"
-  				       "*** Contents\n"
-  				       (format "%s\n" (my/convert-gfm-to-org body))))))))
-
-  (defun my/gh-update-entry-state (entry repo id state)
-    (let ((pos (org-find-entry-with-id (my/gh-format-link repo entry id))))
-  		 (goto-char pos)
-  		 (org-todo)
-  		 (let ((prop-state (my/org-get-property "STATE")))
-  		   (unless (string= prop-state state))
-  		       (progn (org-set-property "STATE" state)
-  			      (unless (org-find-exact-headline-in-buffer (capitalize state))
-  				(goto-char (buffer-size))
-  				(org-insert-heading nil nil 1)
-  				(insert (capitalize state)))
-  			      (let* ((state-header (capitalize state))
-  				    (state-header-pos (org-find-exact-headline-in-buffer state-header)))
-  				(goto-char pos)
-  				(org-refile nil (format "gh-%ss.org" entry) (list (capitalize state) (concat org-directory "agentic-memory/" (format "gh-%ss.org" entry)) nil state-header-pos)))))))
-
-  (defun my/gh-add-or-update-entry (entry repo id title body author state created-at)
-    (save-excursion
-        (find-file (concat org-directory "agentic-memory/" (format "gh-%ss.org" entry)))
-        (if (string= state "OPEN")
-  	  (my/gh-insert-new-entry entry repo id title body author state created-at)
-  	(my/gh-update-entry-state entry repo id state))
-        (save-buffer))
-    nil)
-
-  (defun my/gh-parse-metadata (repo entry results)
-    (let* ((title (alist-get 'title results))
-  	 (body (alist-get 'body results))
-  	 (author (alist-get 'login (alist-get 'author results)))
-  	 (state (alist-get 'state results))
-  	 (created-date (alist-get 'createdAt results))
-  	 (id (car (last (string-split (alist-get 'url results) "/")))))
-      (list entry repo id title body author state created-date)))
-
-  (defun my/org-get-property (PROP)
-    (interactive)
-    (let ((pos (point)))
-      (org-entry-get pos PROP)))
-
-  (defun my/gh-fetch-update (repo get-type)
-    (let* ((fields "title,body,author,state,createdAt,url")
-  	 (cmd (format "gh %s list --repo %s --json %s --state all"
-  		      (shell-quote-argument get-type)
-  		      (shell-quote-argument repo)
-  		      (shell-quote-argument fields))))
-      (let* ((output (shell-command-to-string cmd)))
-        (unless (string-search "error" output)
-  	(let ((results (json-parse-string output :array-type 'list :object-type 'alist)))
-           (dolist (result results)
-  	   (unless (not result)
-  	    (let ((metadata (my/gh-parse-metadata repo get-type result)))
-  	      (apply #'my/gh-update metadata)))))))))
-
-  (defun my/gh-fetch-update-continuous ()
-    (interactive)
-    (let* ((repo (my/gh-select-repo))
-  	 (entry (completing-read "Fetch: " '("pr" "issue") nil t)))
-      (run-at-time "15 min" 900 #'my/gh-fetch-update repo entry)))
-
-  (keymap-global-set "C-c g f" #'my/gh-fetch-update-continuous)
-#+end_src
-* Slime
-** Set up Slime
-#+begin_src emacs-lisp
-  (setq inferior-lisp-program "sbcl")
-  (slime-setup '(slime-fancy))
-#+end_src
-* Projectile
-=======
-
-now, we can start the slack server
-#+begin_src emacs-lisp :tangle "init.el"
   (keymap-global-set "C-c S p" #'my/slack-send-message)
   (keymap-global-set "C-c S o" #'my/org-to-slack-md)
-
-  (add-hook 'emacs-startup-hook #'slack-start)
 #+end_src
 
 ** projectile
 for better project management
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package projectile
     :ensure t
@@ -3543,12 +2156,8 @@ for better project management
     (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
     (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
 #+end_src
-<<<<<<< HEAD
-* Zotero
-=======
 
 ** zotero
->>>>>>> 5e7a573 (update configuration)
 #+begin_src emacs-lisp
   (use-package zotra
     :ensure t
@@ -3568,56 +2177,3 @@ for better project management
   		   '(zotra-download-attachment-for-current-entry))))
         (zotra-add-entry url))))
 #+end_src
-<<<<<<< HEAD
-* Howm
-** setup
-#+begin_src emacs-lisp
-  (use-package howm-org
-    :ensure nil)
-  (use-package howm
-    :ensure t
-    :after howm-org
-    :init
-    ;; 
-    ;; Options: Remove the leading ";" in the following lines if you like.
-    ;; 
-    ;; Format
-					;(require 'howm-markdown) ;; Write notes in markdown-mode. (*1)
-    ;; Preferences
-    (setq howm-directory "~/howm") ;; Where to store the files?
-    (setq howm-follow-theme t) ;; Use your Emacs theme colors. (*3)
-    ;; 
-    ;; Performance
-    (setq howm-menu-expiry-hours 1) ;; Cache menu N hours. (*4)
-    (setq howm-menu-refresh-after-save nil) ;; Speed up note saving. (*5)
-    )
-#+end_src
-
-* Calfw
-#+begin_src emacs-lisp
-  (use-package calfw-howm
-    :ensure t
-    :after howm
-    :config
-    (calfw-howm-install-schedules)
-    (define-key howm-mode-map (kbd "M-C") 'calfw-howm-open-calendar))
-
-  (use-package calfw-org
-    :ensure t
-    :after org
-    :config
-    (setq calfw-org-agenda-schedule-args '(:timestamp)))
-
-  (use-package calfw
-    :ensure t
-    :after (calfw-howm calfw-org))
-
-  (defun my/open-calendar ()
-      (interactive)
-      (calfw-open-calendar-buffer
-       :contents-sources
-       (list
-        (calfw-org-create-source nil "org-agenda" "peru"))))
-#+end_src
-=======
->>>>>>> 5e7a573 (update configuration)

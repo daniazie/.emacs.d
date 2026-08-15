@@ -1,4 +1,4 @@
-;;; -*- lexical-binding: t-*-
+;;; -*- lexical-binding: t -*-
 
 (setq gc-cons-percentage 1.0)
 (if noninteractive
@@ -15,6 +15,13 @@
           (lambda () (setq gc-cons-threshold 800000)))
 
 (setq read-process-output-max (* 1024 1024))
+
+(custom-set-variables
+ '(org-agenda-files
+   '("/home/dania/org/agentic-memory.org" "/home/dania/org/calendar.org"
+     "/home/dania/org/daily.org" "/home/dania/org/meeting.org"
+     "/home/dania/org/paper-listup.org" "/home/dania/org/todo.org"
+     "/home/dania/org/slack.org")))
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -294,13 +301,12 @@
   ;; Example configuration for Consult
 (use-package consult-flycheck
   :ensure t
-  :demand t
   :commands
   consult-flycheck)
 
 (use-package consult
   ;; Replace bindings. Lazily loaded by `use-package'.
-  :defer nil
+  :ensure t
   :bind (;; C-c bindings in `mode-specific-map'
          ("C-c M-x" . consult-mode-command)
          ("C-c h" . consult-history)
@@ -311,7 +317,7 @@
          ;; C-x bindings in `ctl-x-map'
          ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
          ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
-         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. 
          ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
          ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
          ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
@@ -355,10 +361,8 @@
          :map minibuffer-local-map
          ("M-s" . consult-history)                 ;; orig. next-matching-history-element
          ("M-r" . consult-history))                ;; orig. previous-matching-history-element
-  
     ;; The :init configuration is always executed (Not lazy)
   :init
-  
   ;; Tweak the register preview for `consult-register-load',
   ;; `consult-register-store' and the built-in commands.  This improves the
   ;; register formatting, adds thin separator lines, register sorting and hides
@@ -389,19 +393,13 @@
    consult-source-recent-file consult-source-project-recent-file
    ;; :preview-key "M-."
    :preview-key '(:debounce 0.4 any))
-  
+
   (setq consult-narrow-key "C-+") ;; 
-  
+
   ;; Optionally make narrowing help available in the minibuffer.
   ;; You may want to use `embark-prefix-help-command' or which-key instead.
   ;; (keymap-set consult-narrow-map (concat consult-narrow-key " ?") #'consult-narrow-help)
-  (consult-info-define "emacs" "efaq" "elisp" "cl" "compat" "eshell")
-  (consult-info-define 'completion
-                       "vertico" "consult" "marginalia" "orderless"
-                       "embark" "corfu" "cape" "tempel")
-  (consult-info-define "org")
-  (consult-info-define "gnus")
-  (consult-info-define "magit"))
+)
 
 (use-package embark
   :ensure t
@@ -420,70 +418,71 @@
 (use-package embark-consult
   :ensure t)
 
-(use-package corfu
-  :demand t
-  :ensure t
-  :custom
-  (setq corfu-auto t
-	corfu-auto-delay 0
-	corfu-auto-prefix 0)
-  (corfu-cycle t)
-  (corfu-quit-at-boundary nil)
-  (corfu-quit-no-match nil)
-  (setq global-corfu-minibuffer
-	(lambda ()
-	  (not (or (bound-and-true-p mct--active)
-		   (bound-and-true-p vertico--input)
-		   (eq (current-local-map) read-passwd-map)))))
-  (corfu-separator ?_)
-  :hook
-  (eshell-mode . (lambda ()
-		   (setq-local corfu-auto nil)
-		   (corfu-mode)))
-  (corfu-mode . (lambda ()
-		  ;; Settings only for Corfu
-		  (setq-local completion-styles '(basic)
-			      completion-category-overrides nil
-			      completion-category-defaults nil)))
-  :bind
-  (:map corfu-map ("SPC" . corfu-insert-separator))
-  :init
-  (global-corfu-mode)
-  (corfu-history-mode)
-  (corfu-popupinfo-mode)
-  :config
-  (keymap-unset corfu-map "RET")
-  (keymap-set corfu-map "RET" `( menu-item "" nil :filter
-				 ,(lambda (&optional _)
-				    (and (derived-mode-p 'eshell-mode 'comint-mode)
-					 #'corfu-send)))))
+  (use-package corfu
+    :demand t
+    :ensure t
+    :custom
+    (setq corfu-auto t
+  	corfu-auto-delay 0
+  	corfu-auto-prefix 0)
+    (corfu-cycle t)
+    (corfu-quit-at-boundary nil)
+    (corfu-quit-no-match nil)
+    (setq global-corfu-minibuffer
+  	(lambda ()
+  	  (not (or (bound-and-true-p mct--active)
+  		   (bound-and-true-p vertico--input)
+  		   (eq (current-local-map) read-passwd-map)))))
+    (corfu-separator ?_)
+    :hook
+    (eshell-mode . (lambda ()
+  		   (setq-local corfu-auto nil)
+  		   (corfu-mode)))
+    (corfu-mode . (lambda ()
+  		  ;; Settings only for Corfu
+  		  (setq-local completion-styles '(basic)
+  			      completion-category-overrides nil
+  			      completion-category-defaults nil)))
+    :bind
+    (:map corfu-map ("SPC" . corfu-insert-separator))
+    :init
+    (global-corfu-mode)
+    (corfu-history-mode)
+    (corfu-popupinfo-mode)
+    :config
+    (keymap-unset corfu-map "RET")
+    (keymap-set corfu-map "RET" `( menu-item "" nil :filter
+  				 ,(lambda (&optional _)
+  				    (and (derived-mode-p 'eshell-mode 'comint-mode)
+  					 #'corfu-send)))))
 
-(use-package corfu-candidate-overlay
-  :ensure t
-  :demand t
-  :after corfu
-  :config
-  (corfu-candidate-overlay-mode 1)
-  (keymap-global-set "C-<tab>" 'completion-at-point)
-  (keymap-global-set "C-<iso-lefttab>" 'corfu-candidate-overlay-complete-at-point))
+  (use-package corfu-candidate-overlay
+    :ensure t
+    :demand t
+    :after corfu
+    :config
+    (corfu-candidate-overlay-mode 1)
+    (keymap-global-set "C-<tab>" 'completion-at-point)
+    (keymap-global-set "C-<iso-lefttab>" 'corfu-candidate-overlay-complete-at-point))
 
-(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
+  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
+>>>>>>> 5e7a573 (update configuration)
 
-;; Optionally:
-(setq nerd-icons-corfu-mapping
-      '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
-	(boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
-	;; You can alternatively specify a function to perform the mapping,
-	;; use this when knowing the exact completion candidate is important.
-	;; Don't pass `:face' if the function already returns string with the
-	;; face property, though.
-	(file :fn nerd-icons-icon-for-file :face font-lock-string-face)
-	;; ...
-        (t :style "cod" :icon "code" :face font-lock-warning-face)))
-        ;; If you add an entry for t, the library uses that as fallback.
-        ;; The default fallback (when it's not specified) is the ? symbol.
+  ;; Optionally:
+  (setq nerd-icons-corfu-mapping
+        '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+  	(boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+  	;; You can alternatively specify a function to perform the mapping,
+  	;; use this when knowing the exact completion candidate is important.
+  	;; Don't pass `:face' if the function already returns string with the
+  	;; face property, though.
+  	(file :fn nerd-icons-icon-for-file :face font-lock-string-face)
+  	;; ...
+          (t :style "cod" :icon "code" :face font-lock-warning-face)))
+          ;; If you add an entry for t, the library uses that as fallback.
+          ;; The default fallback (when it's not specified) is the ? symbol.
 
-;; The Custom interface is also supported for tuning the variable above.
+  ;; The Custom interface is also supported for tuning the variable above.
 
 (use-package cape
 ;; Bind prefix keymap providing all Cape commands under a mnemonic key.
@@ -494,11 +493,6 @@
 ;;        ("C-c p h" . cape-history)
 ;;        ("C-c p f" . cape-file)
 ;;        ...)
-;;
-;; Add to the global default value of `completion-at-point-functions' which is
-;; used by `completion-at-point'.  The order of the functions matters, the
-;; first function returning a result wins.  Note that the list of buffer-local
-;; completion functions takes precedence over the global list.
 :init
 (add-hook 'completion-at-point-functions #'cape-dabbrev)
 (add-hook 'completion-at-point-functions #'cape-file)
@@ -653,7 +647,6 @@
   (dashboard-items '((recents . 5)
                      (bookmarks . 5)
                      (projects . 5)))
-
   (dashboard-navigation-cycle t)
   (dashboard-display-icons-p t)
   (dashboard-icon-type 'nerd-icons)
@@ -662,11 +655,6 @@
 
 (defun my/toggle-input-method ()
   (interactive)
-  (toggle-input-method))
-
-(defun my/initialise-input-method ()
-  (interactive)
-  (set-input-method 'korean-hangul)
   (toggle-input-method))
 
 (keymap-global-set "s-SPC" #'my/toggle-input-method)
@@ -837,6 +825,13 @@
   :init    
   (switchy-window-minor-mode))
 
+(use-package plstore
+  :ensure t
+  :demand t
+  :config
+  (add-to-list 'plstore-encrypt-to "dania.moriazi01@khu.ac.kr")
+  (setq epg-pinentry-mode 'loopback))
+
 (straight-use-package 'org)
 (with-eval-after-load "org"
   (setq org-agenda-start-on-weekday 0)
@@ -847,7 +842,7 @@
   (setq org-return-follows-link t)
   (setq org-refile-allow-creating-parent-nodes 'confirm)
   (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
-  
+
   (keymap-global-set "C-c c" #'org-capture)
   (keymap-global-set "C-c l" #'org-store-link-props)
   (keymap-global-set "C-c a" #'org-agenda)
@@ -914,7 +909,6 @@
     (set-face-foreground face (face-attribute 'default :background)))
   (set-face-background 'fringe (face-attribute 'default :background))
 
-  
   (defun my/org-mode-level-font-size ()
     (set-face-attribute 'org-level-4 nil :inherit 'outline-4 :height 1.0)      
     (set-face-attribute 'org-level-3 nil :inherit 'outline-3 :height 1.1)      
@@ -925,97 +919,30 @@
   (my/org-mode-level-font-size)
   (global-org-modern-mode))
 
-;; additionally, since we enabled org-hide-emphasis-markers, we use org-appear to toggle viewing them when our pointer moves to said emphasis markers.
+;; and then we use org-appear to unhide the emphasis markers when hovered over
 (use-package org-appear
   :ensure t
   :hook
   (org-mode . org-appear-mode))
 
-  (setq org-capture-templates
-        '(("m" "meeting" entry (file "meeting.org")
-  	 "* %t \n ** Discussion %? \n** Tasks \n")
-  	("i" "inbox" entry (file "inbox.org")
-  	 "* %u \n ** %?")
-  	("p" "capture" entry (file "capture-inbox.org")
-  	 "* %:annotation %u\n %i\n%?")
-  	("r" "weekly-report" entry (file "weekly-report.org")
-  	 "* %^{PROMPT}u \n ** 이번 주에 한 일\n%? \n** 다음 주에 할 일\n** 도움이 필요하거나 공유할 사항\n")
-  	("d" "daily-note" entry (file "daily.org")
-"* %u \n** Tasks [/] \n #+CATEGORY: Task %?\n** Log \n** Notes"
-  	 :immediate-finish t)))
-
-(defun my/archive-paper (result)
-  (message "archive-paper called with: %S" result)
-  (my/save-to-ref-bib result)
-  (save-window-excursion
-    (find-file (concat org-directory "paper-listup.org"))
-    (goto-char (point-max))
-    (let* ((url (plist-get result :url))
-	   (title (plist-get result :title))
-	   (abstract (plist-get result :abstract))
-	   (code-url (plist-get result :code_url)))
-      (insert (concat "** TOREAD " title "\n"))
-      (insert (s-concat ":PROPERTIES:\n"
-			":RETRIEVED: "))
-			(org-timestamp '(16))
-      (insert ":LINK: ")
-      (org-insert-link "ref:"
-		       (format "ref:%s" url))
-      (insert "\n")
-      (when-let ((bibkey (plist-get result :bibkey)))
-	(insert (s-concat ":BIBKEY: " bibkey "\n")))
-      (when code-url
-	(insert (s-concat ":DATA: " code-url "\n")))
-      (insert (s-concat ":END:"
-			"\n"
-			"*** Abstract"
-			"\n"
-			abstract
-			"\n")))
-    (save-buffer))
-  nil)
-
-(defun my/save-to-ref-bib (result)
-  (save-window-excursion
-    (find-file (concat org-directory "references.bib"))
-    (goto-char (point-max))
-    (let* ((citebib (plist-get result :citebib))
-	     (title (plist-get result :title))
-	     (fname (plist-get result :fname))
-	     (abstract (plist-get result :abstract))
-	     (url (plist-get result :url))
-	     (download_path (concat "~/Downloads/" fname))
-	     (save_path (concat "~/Documents/papers/" fname)))
-	(unless (bibtex-search-entry title)
-	  (goto-char (point-max))
-	  (insert citebib)
-	  (shell-command (concat "mv " download_path " " save_path))
-	  (bibtex-set-field "abstract" abstract)
-	  (bibtex-set-field "file" save_path))
-	(save-buffer))))
-
-(setq org-protocol-protocol-alist
-      '(("archive papers"
-	 :protocol "archive-papers"
-	 :function my/archive-paper)
-	("save refs"
-	 :protocol "save-to-ref-bib"
-	 :function my/save-to-ref-bib)))
-
-     (defun my/gh-open (link _)
+(defun my/gh-open (link _)
   (browse-url (my/gh-expand-link link)))
 
 (defun my/gh-expand-link (link)
   (if (string-search "#" link)
       (progn (if (string-search ":#" link)
-		 (apply #'format "https://github.com/%s/pull/%s" (my/gh-parse-link link))
-	       (apply #'format "https://github.com/%s/issues/%s" (my/gh-parse-link link))))
+		 (apply #'format "https://github.com/%s/pull/%s"
+			(my/gh-parse-link link))
+	       (apply #'format "https://github.com/%s/issues/%s"
+		      (my/gh-parse-link link))))
     (if (string-search ":" (string-remove-prefix "gh:" link))
 	(apply #'format "https://github.com/%s/tree/%s" (my/gh-parse-link link))
       (format "https://github.com/%s" link))))
 
 (defun my/gh-export (link description backend info)
-  (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+  (if-let ((transcode-link (alist-get
+			    'link (org-export-backend-transcoders
+				   (org-export-get-backend backend)))))
       (let ((link (org-element-create
 		   'link (list :type "https"
 			       :path (my/gh-expand-link link)))))
@@ -1034,7 +961,9 @@
     "issue"))
 
 (defun my/gh-parse-link (link) 
-  (let ((parts (string-split (string-remove-prefix "gh:" link) (my/get-sep link) t)))
+  (let ((parts
+	 (string-split (string-remove-prefix "gh:" link)
+		       (my/get-sep link) t)))
     parts))
 
 (defun my/gh-link-description (link description)
@@ -1043,7 +972,10 @@
 	  (progn (let* ((repo (nth 0 (my/gh-parse-link link)))
 			(id (nth 1 (my/gh-parse-link link)))
 			(entry (my/get-entry-type link)))
-		   (format "%s: %s" (string-replace ":#" "#" (string-remove-prefix "gh:" link)) (my/gh-get-entry-title repo entry id))))
+		   (format "%s: %s"
+			   (string-replace ":#" "#"
+					   (string-remove-prefix "gh:" link))
+			   (my/gh-get-entry-title repo entry id))))
 	(if (string-search ":" (string-remove-prefix "gh:" link))
 	    (string-remove-prefix "gh:" link)
 	  link))))
@@ -1053,8 +985,10 @@
 		     (shell-quote-argument entry)
 		     (shell-quote-argument id)
 		     (shell-quote-argument repo))))
-    (alist-get 'title (json-parse-string (shell-command-to-string cmd) :object-type 'alist))))
-  
+    (alist-get 'title
+	       (json-parse-string
+		(shell-command-to-string cmd) :object-type 'alist))))
+
 (defun my/gh-store-link (link &optional description)
   (org-link-store-props
    :type "gh"
@@ -1067,19 +1001,20 @@
 			 :store-link #'my/gh-store-link
 			 :insert-description #'my/gh-link-description)
 
-
-     (defun hf-open (repo &optional repo-type)
+(defun hf-open (repo &optional repo-type)
   (interactive
    (list (completing-read "Choose repo type: " '("model" "dataset"))))
   (browse-url (hf-expand-link repo repo-type)))
 
 (defun hf-expand-link (repo &optional repo-type)
-  (if (string= repo-type "dataset")
+
       (format "https://huggingface.co/datasets/%s" repo)
     (format "https://huggingface/co/%s" repo)))
 
 (defun hf-export (repo description backend info &optional repo-type)
-  (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+  (if-let ((transcode-link (alist-get
+			    'link (org-export-backend-transcoders
+				   (org-export-get-backend backend)))))
       (let ((link (org-element-create
 		   'link (list :type "https"
 			       :path (hf-expand-link repo repo-type)))))
@@ -1101,7 +1036,7 @@
 			 :insert-description #'hf-description
 			 :store-link #'hf-store-link)
 
-     (defun my/repo-open (link _)
+(defun my/repo-open (link _)
   (browse-url (my/repo-expand-link link)))
 
 (setq repo-list '("codeberg.org"))
@@ -1117,11 +1052,14 @@
   (interactive "r")
   (let ((domain (my/repo-domain)))
     (if (string-search ":" (string-remove-prefix "repo:" link))
-	(apply #'format (concat "https://" domain "/%s/tree/%s") (my/repo-parse-link link))
+	(apply #'format
+	       (concat "https://" domain "/%s/tree/%s") (my/repo-parse-link link))
       (format "https://%s/%s" domain link))))
   
 (defun my/repo-export (link description backend info)
-  (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+  (if-let ((transcode-link (alist-get
+			    'link (org-export-backend-transcoders
+				   (org-export-get-backend backend)))))
       (let ((link (org-element-create
 		   'link (list :type "https"
 			       :path (my/repo-expand-link link)))))
@@ -1161,7 +1099,7 @@
 			 :store-link #'my/repo-store-link
 			 :insert-description #'my/repo-link-description)
 
-     (defun my/ref-link--open-link (link _)
+(defun my/ref-link--open-link (link _)
   (org-link-open-from-string link))
 
 (defun my/ref-link--parse-id (link)
@@ -1171,7 +1109,9 @@
     id))
 
 (defun my/ref-link--export-link (link description backend info)
-  (if-let ((transcode-link (alist-get 'link (org-export-backend-transcoders (org-export-get-backend backend)))))
+  (if-let ((transcode-link (alist-get
+			    'link (org-export-backend-transcoders
+				   (org-export-get-backend backend)))))
       (let ((link (org-element-create
 		   'link (list :type "https"
 			       :path link))))
@@ -1196,10 +1136,12 @@
 			 :insert-description #'my/ref-link--insert-description)
 
 
-(setq org-gcal-client-id (auth-source-pick-first-password :host "org-gcal"
-							    :user "dania.moriazi01@khu.ac.kr^id"))
-(setq org-gcal-client-secret (auth-source-pick-first-password :host "org-gcal"
-							      :user "dania.moriazi01@khu.ac.kr^secret"))
+(setq org-gcal-client-id
+      (auth-source-pick-first-password :host "org-gcal"
+                                       :user "dania.moriazi01@khu.ac.kr^id"))
+(setq org-gcal-client-secret
+      (auth-source-pick-first-password :host "org-gcal"
+                                       :user "dania.moriazi01@khu.ac.kr^secret"))
 
 (use-package org-gcal
   :ensure t
@@ -1278,7 +1220,6 @@
   (puthash 'typescript-ts-mode 'ts tree-sitter-major-mode-language-table)
   (puthash 'ruby-ts-mode 'ruby tree-sitter-major-mode-language-table))
 
-
 (use-package conda-projectile
   :after conda)
   
@@ -1348,10 +1289,8 @@
 	("M-p" . code-cells-backward-cell)
 	("M-n" . code-cells-forward-cell)
 	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
-
 :config
 (add-to-list 'code-cells-convert-ipynb-style '("jupytext" "to" "py:percent"))
-
 (defun my/code-cells-new-cell ()
   (interactive)
   (newline 2)
@@ -1518,30 +1457,30 @@
 
 (add-hook 'treemacs-after-visit-functions #'my/refresh-undo-tree-visualizer)
 
-(use-package transient
-  :ensure t)
+  (use-package transient
+    :ensure t)
 
-(use-package pinentry
-  :ensure t
-  :config
-  (pinentry-start))
+  (use-package pinentry
+    :ensure t
+    :config
+    (pinentry-start))
 
-(use-package magit
-  :ensure t
-  :demand t
-  :bind
-  (("C-x g" . magit-status)
-   ("C-x M-g" . magit-dispatch)
-   ("C-c M-g" . magit-file-dispatch))
-  :config
-  (remove-hook 'server-switch-hook 'magit-commit-diff)
-  (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff))
+  (use-package magit
+    :ensure t
+    :demand t
+    :bind
+    (("C-x g" . magit-status)
+     ("C-x M-g" . magit-dispatch)
+     ("C-c M-g" . magit-file-dispatch))
+    :config
+    (remove-hook 'server-switch-hook 'magit-commit-diff)
+    (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff))
 
-(use-package magit-lfs
-  :ensure t
-  :pin melpa
-  :after magit
-  :demand t)
+  (use-package magit-lfs
+    :ensure t
+    :pin melpa
+    :after magit
+    :demand t)
 
 (use-package diff-hl
   :ensure t
@@ -1555,10 +1494,11 @@
 
 (use-package flycheck
   :ensure t
+  :custom
+  (flycheck-idle-change-delay 5)
+  (flycheck-idle-buffer-switch-delay 5)
+  (flycheck-check-syntax-automatically '(save idle-change mode-enabled))
   :config
-  (setq flycheck-idle-change-delay 5)
-  (setq flycheck-idle-buffer-switch-delay 5)
-  (setq flycheck-check-syntax-automatically '(save idle-change mode-enabled))
   (global-flycheck-mode))
 
 (use-package flycheck-posframe
@@ -1592,14 +1532,12 @@
   (pcase-let ((`(,_left ,right ,top) eldoc-box-offset))
     (cons (- (frame-outer-width) width right)
 	  top)))
-
 (setq eldoc-box-position-function #'my/eldoc-box--always-frame-top-right))
 
 (use-package codemetrics
   :ensure t
   :straight (codemetrics :type git :host github :repo "jcs-elpa/codemetrics")
   :hook
-  (eglot-server-initialized . codemetrics-mode)
   (lsp-mode . codemetrics-mode))
 
 (use-package combobulate
@@ -1674,6 +1612,8 @@
   (elfeed-score-load-score-file "~/.emacs.d/elfeed.score")
   (define-key elfeed-search-mode-map "=" elfeed-score-map))
 
+(setq elfeed-feeds '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
+
 (setq elfeed-feeds        '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
 
 (defun concatenate-authors (authors-list)
@@ -1721,6 +1661,7 @@
       (arxiv-get-pdf-add-bibtex-entry matched-arxiv-number arxiv_bib arxiv_pdf_loc)
       ;; Now, we are updating the most recent bib file with the pdf location
       (message "Update bibtex with pdf file location")
+
       (save-excursion
               ;; Get the bib file
               (find-file arxiv_bib)
@@ -1740,6 +1681,7 @@
                       (setq last-arxiv-title title)
                       (save-buffer)
                       )))
+
       (save-excursion
         (find-file (concat org-directory "papers.org"))
         (goto-char (point-max))
@@ -1755,8 +1697,8 @@
 (setq bibtex-completion-bibliography (list arxiv_bib))
 (setq bibtex-completion-pdf-field "file")
 
-(keymap-global-set "C-c n a" #'my/elfeed-entry-to-arxiv)
-(keymap-global-set "C-c n e" #'elfeed)
+(global-set-key (kbd "C-c n a") #'my/elfeed-entry-to-arxiv)
+(global-set-key (kbd "C-c n e") #'elfeed)
 
 (use-package slack
   :bind (("C-c S K" . slack-stop)
@@ -1799,7 +1741,7 @@
 	    :host "languagedatakhu.slack.com"
 	    :user "dania.moriazi01@khu.ac.kr^cookie")
    :full-and-display-names t
-   :default t))
+   :default t ))
 
 ;; parse message metadata
 (defun slack/parse-message-loc (title)
@@ -1814,54 +1756,55 @@
     (string-trim (nth 1 (split-string message ":")))))
 
 ;; configure alert
-(defun my/slack-notify (info)
-  (let* ((channel (slack/parse-message-loc (plist-get info :title)))
-  	 (user (slack/parse-sender (plist-get info :message)))
-  	 (message (slack/parse-message info))
-  	 (pos (org-find-exact-headline-in-buffer channel)))
-    (unless (string-search "주간보고" message)
-      (write-region
-       (s-concat
-	"** UNREAD "
-	(format "<%s> %s : %s"
-  		(format-time-string "%Y-%m-%d %H:%M")
-  		channel
-  		user)
-	"\n"
-	(format "%s" message)
-	"\n")
-       nil
-       (concat org-directory "slack.org")
-       t))))
+  (defun my/slack-notify (info)
+    (let* ((channel (slack/parse-message-loc (plist-get info :title)))
+    	 (user (slack/parse-sender (plist-get info :message)))
+    	 (message (slack/parse-message info))
+    	 (pos (org-find-exact-headline-in-buffer channel)))
+      (unless (string-search "주간보고" message)
+        (write-region
+         (s-concat
+  	"** UNREAD "
+  	(format "<%s> %s : %s"
+    		(format-time-string "%Y-%m-%d %H:%M")
+    		channel
+    		user)
+  	"\n"
+  	(format "%s" message)
+  	"\n")
+         nil
+         (concat org-directory "slack.org")
+         t))))
 
-(use-package alert
-  :ensure t
-  :init
-  (setq alert-default-style 'message)
-  :config
-  (alert-define-style
-   'my/slack-alert
-   :title "org slack alerts"
-   :notifier (lambda (info)
-  	       (if (get-buffer "slack.org")
-  		   (with-current-buffer "slack.org"
-  		     (save-buffer))
-  		 (with-current-buffer
-  		     (get-buffer-create (find-file (concat org-directory "slack.org")))
-  		   (save-buffer)))
-  	       (my/slack-notify info)))
-  
-  (add-to-list 'alert-user-configuration
-  	       '(((:category . "slack")) my/slack-alert nil))
-  :hook (org-agenda-mode-hook . (lambda () (local-set-key (kbd "M") 'my/org-agenda-todo-archive))))
+  (use-package alert
+      :ensure t
+      :init
+      (setq alert-default-style 'message)
+      :config
+      (alert-define-style
+       'my/slack-alert
+       :title "org slack alerts"
+       :notifier (lambda (info)
+                   (if (get-buffer "slack.org")
+    		   (with-current-buffer "slack.org"
+    		     (save-buffer))
+    		 (with-current-buffer
+    		     (get-buffer-create (find-file (concat org-directory "slack.org")))
+    		   (save-buffer)))
+    	       (my/slack-notify info)))
+      
+      (add-to-list 'alert-user-configuration
+    	       '(((:category . "slack")) my/slack-alert nil))
+      :hook (org-agenda-mode-hook . (lambda () (local-set-key (kbd "M") 'my/org-agenda-todo-archive))))
 
 (defun my/save-slack ()
   (interactive)
   (save-excursion
     (do-list (buf '("slack.org_archive" "slack.org"))
-  	     (set-buffer buf)
-  	     (if (and (buffer-file-name) (buffer-modified-p))
-  		 (basic-save-buffer)))))
+             (set-buffer buf)
+             (if (and (buffer-file-name) (buffer-modified-p))
+                 (basic-save-buffer)))))
+
 
 (defun my/org-agenda-todo-archive()
   (interactive)
@@ -1869,6 +1812,7 @@
   (org-agenda-archive)
   (my/save-slack))
 
+;; first we convert org-mode to mrkdwn (markdown flavour used by slack)
 (defun my/org-to-slack-md ()
   (interactive)
   (goto-char (point))
@@ -1882,7 +1826,8 @@
       (kill-buffer)
       (shell-command-to-string cmd))))
 
-(defun my/slack-send-message ()
+;; then we send the message
+ (defun my/slack-send-message ()
   (interactive)
   (let ((slack-msg (my/org-to-slack-md)))
     (save-window-excursion
@@ -1894,8 +1839,6 @@
 
 (keymap-global-set "C-c S p" #'my/slack-send-message)
 (keymap-global-set "C-c S o" #'my/org-to-slack-md)
-
-(add-hook 'emacs-startup-hook #'slack-start)
 
 (use-package projectile
   :ensure t
