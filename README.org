@@ -7,4 +7,7 @@
 Because version control.
 
 * startup page
-[[file:img/dashboard.png]]
+** GUI edition
+[[file:img/dashboard-gui.png]]
+** TUI edition
+[[file:img/dashboard-tui.png]]

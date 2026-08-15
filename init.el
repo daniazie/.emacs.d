@@ -1403,11 +1403,6 @@
   :init
   (if (display-graphic-p)
       (treemacs-load-theme "nerd-icons"))
-  (defvar treemacs-current-directory (treemacs--current-directory-project-function))
-  (defun my/treemacs-load-dir-locals ()
-    (interactive)
-    (let ((dir (treemacs--current-directory-project-function)))
-      (dir-locals-read-from-dir dir)))
   :hook
   (treemacs-mode . treemacs-peek-mode)
   (treemacs-mode . (lambda () (dired-sidebar-hide-sidebar)))
@@ -1417,10 +1412,15 @@
   (treemacs-projectile)
   (keymap-global-set "C-c t o" #'treemacs-select-window)
   (keymap-global-set "C-c t t" #'treemacs)
-  
-  (add-hook 'treemacs-mode-hook #'my/treemacs-load-dir-locals
-            50)
-  (add-hook 'treemacs-mode-hook (lambda () (dired treemacs-current-directory)) 60))
+
+  (defun my/treemacs-load-dir-locals ()
+    (interactive)
+    (let ((dir (treemacs--current-directory-project-function)))
+      (dir-locals-read-from-dir dir)
+      (when conda-env-name-for-buffer
+        (conda-env-activate-for-buffer))))
+
+  (add-hook 'treemacs-mode-hook #'my/treemacs-load-dir-locals 50))
 
 (use-package undo-tree
   :ensure t
