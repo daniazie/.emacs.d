@@ -34,14 +34,13 @@ Here, we write our configuration for =init.el=. Our first order of business: cus
        "/home/dania/org/daily.org" "/home/dania/org/meeting.org"
        "/home/dania/org/todo.org" "/home/dania/org/slack.org")))
 
-  (setq gc-cons-percentage 1.0)
-  (setq inhibit-compacting-font-caches t)
   (profiler-start 'cpu+mem)
+  (setq inhibit-compacting-font-caches t)
 
   (setq gc-cons-threshold most-positive-fixnum
-	gc-cons-percentage 0.5)
+  	gc-cons-percentage 0.5)
   (add-hook 'emacs-startup-hook
-	    (lambda () (setq gc-cons-threshold 800000)))
+  	    (lambda () (setq gc-cons-threshold 800000)))
 
   (setq read-process-output-max (* 1024 1024))
 #+end_src
@@ -107,7 +106,7 @@ using compile-angel to speed emacs up.
 this is where I setup my emacs theme and also some keybindings I use frequently
 #+begin_src emacs-lisp
   (use-package emacs
-  :straight nil
+    :straight nil
     :init
     ;; personally, I prefer not to have the menu-, tool- and scroll-bars.
     (scroll-bar-mode -1)
@@ -152,8 +151,6 @@ this is where I setup my emacs theme and also some keybindings I use frequently
     ;; half the time, I can't be bothered to do M-<tab> every time, so I use 'complete
     (tab-always-indent 'complete)
     (text-mode-ispell-word-completion nil) ;; I use the British English spelling convention and I honestly can't be arsed to configure emacs for British English as well, so may as well just turn this off.
-
-
 
     (calendar-week-start-day 0) ;; I personally like my calendar week to start on Sundays
 

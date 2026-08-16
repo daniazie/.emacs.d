@@ -1,0 +1,13 @@
+#+STARTUP: overview inlineimages
+#+title: dania moriazi's emacs config
+#+CREATOR: dania moriazi
+#+LANGUAGE: en
+#+OPTIONS: num:nil
+
+Because version control.
+
+* startup page
+** GUI edition
+[[file:img/dashboard-gui.png]]
+** TUI edition
+[[file:img/dashboard-tui.png]]
