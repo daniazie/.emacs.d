@@ -234,9 +234,9 @@ I want emacs to detect my shell paths
 
 ** configure which-key
 I don't think I would've lasted as long as I have if it were not for which-key
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
+  (straight-use-package 'posframe)
   (use-package which-key
-    
     :custom
     (which-key-popup-type 'side-window)
     :config
@@ -255,9 +255,8 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
     (vertico-count 20) ;; Show more candidates
     (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
     (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
-    :bind
-    (:map vertico-map
-           ("/" . #'my/vertico-insert))
+    :init
+    (vertico-mode)
     :config
     (defun my/vertico-insert ()
       (interactive)
@@ -266,6 +265,11 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
         (cond ((string-match-p "^[/~:]" lc) (self-insert-command 1 ?/))
               ((file-directory-p (vertico--candidate)) (vertico-insert))
               (t (self-insert-command 1 ?/)))))
+
+    (setq vertico-multiform-commands
+          '(("\\`execute-extended-command" unobtrusive
+             (vertico-flat-annotate . t)
+             (marginalia-annotators (command marginalia-annotate-binding)))))
 
     (defun down-from-outside ()
       "Move to next candidate in minibuffer, even when minibuffer isn't selected."
@@ -286,7 +290,43 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
           (select-window (minibuffer-selected-window))
         (select-window (active-minibuffer-window))))
 
-    (vertico-mode 1))
+    (defun +embark-live-vertico ()
+      "Shrink Vertico minibuffer when `embark-live' is active."
+      (when-let (win (and (string-prefix-p "*Embark Live" (buffer-name))
+                          (active-minibuffer-window)))
+        (with-selected-window win
+          (when (and (bound-and-true-p vertico--input)
+                     (fboundp 'vertico-multiform-unobtrusive))
+            (vertico-multiform-unobtrusive)))))
+    
+    (add-hook 'embark-collect-mode-hook #'+embark-live-vertico)
+    
+    :bind
+    (:map vertico-map
+          ("/" . #'my/vertico-insert)))
+
+  (use-package vertico-buffer
+    :straight nil
+    :after vertico)
+
+  (use-package vertico-grid
+    :straight nil
+    :after vertico)
+
+  (use-package vertico-multiform
+    :straight nil
+    :after vertico
+    :init
+    (defun vertico-multiform-buffer-grid ()
+      "Toggle displaying Vertico as a grid in a large window (like a regular buffer)."
+      (interactive)
+      (if (equal '(vertico-buffer-mode vertico-grid-mode) (car vertico-multiform--stack))
+          (vertico-multiform-vertical)
+        (setcar vertico-multiform--stack '(vertico-buffer-mode vertico-grid-mode))
+        (vertico-multiform--toggle 1)))
+    
+    :bind
+    (:map vertico-multiform-map ("M-H" . vertico-multiform-buffer-grid)))
 
   (use-package vertico-directory
     :straight nil
@@ -299,31 +339,8 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
     ;; Tidy shadowed file names
     :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 
-  (use-package vertico-buffer
-    :straight nil
-    :after vertico)
-
-  (use-package vertico-multiform
-    :straight nil
-    :after vertico
-    :bind
-    (:map vertico-multiform-map ("M-H" . vertico-multiform-buffer-grid))
-    :config
-    (setq vertico-multiform-commands
-          '(("\\`execute-extended-command" unobtrusive
-             (vertico-flat-annotate . t)
-             (marginalia-annotators (command marginalia-annotate-binding)))))
-
-    (defun vertico-multiform-buffer-grid ()
-      "Toggle displaying Vertico as a grid in a large window (like a regular buffer)."
-      (interactive)
-      (if (equal '(vertico-buffer-mode vertico-grid-mode) (car vertico-multiform--stack))
-          (vertico-multiform-vertical)
-        (setcar vertico-multiform--stack '(vertico-buffer-mode vertico-grid-mode))
-        (vertico-multiform--toggle 1))))
-
   (use-package vertico-posframe
-    :after vertico posframe
+    :after vertico
     :custom
     (vertico-multiform-commands
      '((consult-line
@@ -394,14 +411,13 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
           (vertico-posframe-fallback-mode . vertico-mode))))
     :config
     (vertico-multiform-mode 1))
-
-  (straight-use-package 'posframe)
-  ;; Persist history over Emacs restarts. Vertico sorts by history position.
-  (use-package savehist
-    :init
-    (savehist-mode)
-    :config
-    (setq history-length 15))
+  
+    ;; Persist history over Emacs restarts. Vertico sorts by history position.
+    (use-package savehist
+      :init
+      (savehist-mode)
+      :config
+      (setq history-length 15))
 #+end_src
 
 *** orderless

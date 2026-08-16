@@ -1,0 +1,9 @@
+# key: <use-package
+# name: use-package
+# --
+
+#+begin_src emacs-lisp
+(use-package $0
+:ensure ${1:t}
+)
+#+end_src

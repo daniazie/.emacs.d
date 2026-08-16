@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: HFTrainer
+# key: <hf-train
+# --
+
+trainer = $(yas-choose-value '("Trainer" "SFTTrainer" "DPOTrainer" "GRPOTrainer"))(
+model=model,
+processing_class=tokenizer,
+train_dataset=${1:train_dataset},
+eval_dataset=${2:eval_dataset},
+args=training_args,${0}
+)

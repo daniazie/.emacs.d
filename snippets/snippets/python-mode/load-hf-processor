@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: load-hf-processor
+# key: <load-hf-processor
+# --
+
+${1:tokenizer} = $(yas-choose-value '("AutoProcessor" "AutoTokenizer"))(${0})

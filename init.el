@@ -1,13 +1,19 @@
 ;;; -*- lexical-binding: t -*-
 (custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(org-agenda-files
    '("/home/dania/org/agentic-memory.org" "/home/dania/org/calendar.org"
      "/home/dania/org/daily.org" "/home/dania/org/meeting.org"
-     "/home/dania/org/todo.org" "/home/dania/org/slack.org")))
+     "/home/dania/org/todo.org" "/home/dania/org/slack.org"))
+ '(safe-local-variable-values
+   '((conda-projectile-name-assoc quote ("mem" . "agentic-memory"))
+     (conda-project-env-path . "mem"))))
 
-(setq gc-cons-percentage 1.0)
-(setq inhibit-compacting-font-caches t)
 (profiler-start 'cpu+mem)
+(setq inhibit-compacting-font-caches t)
 
 (setq gc-cons-threshold most-positive-fixnum
 	gc-cons-percentage 0.5)
@@ -61,7 +67,7 @@
   (compile-angel-on-load-mode 1))
 
 (use-package emacs
-:straight nil
+  :straight nil
   :init
   ;; personally, I prefer not to have the menu-, tool- and scroll-bars.
   (scroll-bar-mode -1)
@@ -106,8 +112,6 @@
   ;; half the time, I can't be bothered to do M-<tab> every time, so I use 'complete
   (tab-always-indent 'complete)
   (text-mode-ispell-word-completion nil) ;; I use the British English spelling convention and I honestly can't be arsed to configure emacs for British English as well, so may as well just turn this off.
-
-
 
   (calendar-week-start-day 0) ;; I personally like my calendar week to start on Sundays
 
@@ -170,8 +174,8 @@
     :config
     (exec-path-from-shell-initialize)))
 
+(straight-use-package 'posframe)
 (use-package which-key
-  
   :custom
   (which-key-popup-type 'side-window)
   :config
@@ -185,9 +189,8 @@
   (vertico-count 20) ;; Show more candidates
   (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
   (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
-  :bind
-  (:map vertico-map
-         ("/" . #'my/vertico-insert))
+  :init
+  (vertico-mode)
   :config
   (defun my/vertico-insert ()
     (interactive)
@@ -196,6 +199,11 @@
       (cond ((string-match-p "^[/~:]" lc) (self-insert-command 1 ?/))
             ((file-directory-p (vertico--candidate)) (vertico-insert))
             (t (self-insert-command 1 ?/)))))
+
+  (setq vertico-multiform-commands
+        '(("\\`execute-extended-command" unobtrusive
+           (vertico-flat-annotate . t)
+           (marginalia-annotators (command marginalia-annotate-binding)))))
 
   (defun down-from-outside ()
     "Move to next candidate in minibuffer, even when minibuffer isn't selected."
@@ -216,7 +224,43 @@
         (select-window (minibuffer-selected-window))
       (select-window (active-minibuffer-window))))
 
-  (vertico-mode 1))
+  (defun +embark-live-vertico ()
+    "Shrink Vertico minibuffer when `embark-live' is active."
+    (when-let (win (and (string-prefix-p "*Embark Live" (buffer-name))
+                        (active-minibuffer-window)))
+      (with-selected-window win
+        (when (and (bound-and-true-p vertico--input)
+                   (fboundp 'vertico-multiform-unobtrusive))
+          (vertico-multiform-unobtrusive)))))
+  
+  (add-hook 'embark-collect-mode-hook #'+embark-live-vertico)
+  
+  :bind
+  (:map vertico-map
+        ("/" . #'my/vertico-insert)))
+
+(use-package vertico-buffer
+  :straight nil
+  :after vertico)
+
+(use-package vertico-grid
+  :straight nil
+  :after vertico)
+
+(use-package vertico-multiform
+  :straight nil
+  :after vertico
+  :init
+  (defun vertico-multiform-buffer-grid ()
+    "Toggle displaying Vertico as a grid in a large window (like a regular buffer)."
+    (interactive)
+    (if (equal '(vertico-buffer-mode vertico-grid-mode) (car vertico-multiform--stack))
+        (vertico-multiform-vertical)
+      (setcar vertico-multiform--stack '(vertico-buffer-mode vertico-grid-mode))
+      (vertico-multiform--toggle 1)))
+  
+  :bind
+  (:map vertico-multiform-map ("M-H" . vertico-multiform-buffer-grid)))
 
 (use-package vertico-directory
   :straight nil
@@ -229,31 +273,8 @@
   ;; Tidy shadowed file names
   :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 
-(use-package vertico-buffer
-  :straight nil
-  :after vertico)
-
-(use-package vertico-multiform
-  :straight nil
-  :after vertico
-  :bind
-  (:map vertico-multiform-map ("M-H" . vertico-multiform-buffer-grid))
-  :config
-  (setq vertico-multiform-commands
-        '(("\\`execute-extended-command" unobtrusive
-           (vertico-flat-annotate . t)
-           (marginalia-annotators (command marginalia-annotate-binding)))))
-
-  (defun vertico-multiform-buffer-grid ()
-    "Toggle displaying Vertico as a grid in a large window (like a regular buffer)."
-    (interactive)
-    (if (equal '(vertico-buffer-mode vertico-grid-mode) (car vertico-multiform--stack))
-        (vertico-multiform-vertical)
-      (setcar vertico-multiform--stack '(vertico-buffer-mode vertico-grid-mode))
-      (vertico-multiform--toggle 1))))
-
 (use-package vertico-posframe
-  :after vertico posframe
+  :after vertico
   :custom
   (vertico-multiform-commands
    '((consult-line
@@ -325,13 +346,12 @@
   :config
   (vertico-multiform-mode 1))
 
-(straight-use-package 'posframe)
-;; Persist history over Emacs restarts. Vertico sorts by history position.
-(use-package savehist
-  :init
-  (savehist-mode)
-  :config
-  (setq history-length 15))
+  ;; Persist history over Emacs restarts. Vertico sorts by history position.
+  (use-package savehist
+    :init
+    (savehist-mode)
+    :config
+    (setq history-length 15))
 
 (use-package orderless
   :custom
@@ -1927,3 +1947,9 @@
 	   (append zotra-after-get-bibtex-entry-hook
 		   '(zotra-download-attachment-for-current-entry))))
       (zotra-add-entry url))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
