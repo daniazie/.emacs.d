@@ -1,80 +1,67 @@
 ;;; -*- lexical-binding: t -*-
-
-(setq gc-cons-percentage 1.0)
-(if noninteractive
-    (setq gc-cons-threshold 134217728)
-  (progn (setq gc-cons-threshold most-positive-fixnum)
-         (setq load-prefer-newer nil)))
-
-(setq inhibit-compacting-font-caches t)
-(profiler-start 'cpu+mem)
-
-(setq gc-cons-threshold most-positive-fixnum
-      gc-cons-percentage 0.5)
-(add-hook 'emacs-startup-hook
-          (lambda () (setq gc-cons-threshold 800000)))
-
-(setq read-process-output-max (* 1024 1024))
-
 (custom-set-variables
  '(org-agenda-files
    '("/home/dania/org/agentic-memory.org" "/home/dania/org/calendar.org"
      "/home/dania/org/daily.org" "/home/dania/org/meeting.org"
-     "/home/dania/org/paper-listup.org" "/home/dania/org/todo.org"
-     "/home/dania/org/slack.org")))
+     "/home/dania/org/todo.org" "/home/dania/org/slack.org")))
+
+(setq gc-cons-percentage 1.0)
+(setq inhibit-compacting-font-caches t)
+(profiler-start 'cpu+mem)
+
+(setq gc-cons-threshold most-positive-fixnum
+	gc-cons-percentage 0.5)
+(add-hook 'emacs-startup-hook
+	    (lambda () (setq gc-cons-threshold 800000)))
+
+(setq read-process-output-max (* 1024 1024))
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
-       (expand-file-name
-        "straight/repos/straight.el/bootstrap.el"
-        (or (bound-and-true-p straight-base-dir)
-            user-emacs-directory)))
-      (bootstrap-version 7))
+	 (expand-file-name
+	  "straight/repos/straight.el/bootstrap.el"
+	  (or (bound-and-true-p straight-base-dir)
+	      user-emacs-directory)))
+	(bootstrap-version 7))
   (unless (file-exists-p bootstrap-file)
     (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
+	  (url-retrieve-synchronously
+	   "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+	   'silent 'inhibit-cookies)
+	(goto-char (point-max))
+	(eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
- (require 'package)
- (require 'use-package)
+(setq straight-use-package-by-default t)
 
- (add-to-list 'package-archives
- 	     '("melpa" . "https://melpa.org/packages/") t)
-;; and now we can initialise our package archives
- (package-initialize)
+(require 'use-package)
+(package-initialize)
 
- (setq load-prefer-newer t)
+(setq load-prefer-newer t)
 
 (use-package no-littering
-  :ensure t
   :config
   (setq no-littering-etc-directory
-        (expand-file-name "config/" user-emacs-directory))
+	  (expand-file-name "config/" user-emacs-directory))
   (setq no-littering-var-directory
-        (expand-file-name "data/" user-emacs-directory))
+	  (expand-file-name "data/" user-emacs-directory))
   (let ((dir (no-littering-expand-var-file-name "lock-files/")))
     (make-directory dir t)
     (setq lock-file-name-transforms `((".*" ,dir t)))))
 
 (use-package gcmh
-  :ensure t
-  :config
-  (gcmh-mode 1))
+  :hook
+  (emacs-startup . gcmh-mode))
 
 (use-package compile-angel
-  :ensure t
   :config
   (setq compile-angel-verbose t)
   (push "/init.el" compile-angel-excluded-path-suffixes)
   (push "/early-init.el" compile-angel-excluded-path-suffixes)
-  (push "/config.el" compile-angel-excluded-path-suffixes)
   (compile-angel-on-load-mode 1))
 
 (use-package emacs
+:straight nil
   :init
   ;; personally, I prefer not to have the menu-, tool- and scroll-bars.
   (scroll-bar-mode -1)
@@ -86,7 +73,7 @@
 
   ;; also, I like to have my delimiters matched automatically
   (electric-pair-mode t)
-
+  (show-paren-mode t)
   ;; have emacs open in fullscreen by default
   (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
@@ -95,25 +82,23 @@
   ;; ;; 2. aesthetics
   (set-face-attribute 'default nil :font "D2KodingLigatureNerdFont" :height 110)
   (set-fontset-font t 'hangul "Hahmlet") ;; D2Koding is also actually a font for the Korean language but I like how Hahmlet looks more w.r.t. the Korean alphabet
-  
+
+  (set-language-environment-nonascii-translation 'Korean) ;; emacs once got real finnicky with the Korean alphabet and after fixing it, I said never again and added this.
+
+  (global-display-line-numbers-mode 1) ;; I want my line numbers displayed too
+  (context-menu-mode t)
+  (setq treesit-auto-install-grammar 'ask)
+
   :config
   (keymap-global-set "C-c f s" #'scratch-buffer) ;; I want to be able to pull up the scratch buffer easily
   (keymap-global-set "C-x 4 s" #'window-swap-states) ;; I also want to be able to swap window states with a keybind
   (keymap-global-set "C-x 5 n" #'make-frame) ;; And I want to be able make a new frame with just the scratch buffer
 
-  (global-display-line-numbers-mode 1) ;; I want my line numbers displayed too
-  
-  (setq enable-recursive-minibuffers t)
   (setopt use-short-answers t) ;; I cannot be bothered to type yes/no in full every time
-
-  (context-menu-mode t)
-
   (add-hook 'dired-mode #'dired-omit-mode) ;; I don't need to see all the .*~ files when I open up dired
 
-  :hook
-  (after-init . show-paren-mode) ;; being careless, I like to see my matching delimiters
-
   :custom
+  (enable-recursive-minibuffers t)
   (read-extended-command-predicate #'command-completion-default-include-p)
   (minibuffer-prompt-properties
    '(read-only t cursor-intangible t face minibuffer-prompt))
@@ -121,16 +106,16 @@
   ;; half the time, I can't be bothered to do M-<tab> every time, so I use 'complete
   (tab-always-indent 'complete)
   (text-mode-ispell-word-completion nil) ;; I use the British English spelling convention and I honestly can't be arsed to configure emacs for British English as well, so may as well just turn this off.
-  
-  (set-language-environment-nonascii-translation 'Korean) ;; emacs once got real finnicky with the Korean alphabet and after fixing it, I said never again and added this.
+
+
 
   (calendar-week-start-day 0) ;; I personally like my calendar week to start on Sundays
-  
+
   (completion-cycling t) ;; when using completion-at-point, cycle through options
   (display-line-numbers-type 'relative) ;; I discovered relative line numbers and never looked back
-  
+
   (inhibit-startup-message t) ;; I don't need this
-  
+
   (global-visual-line-mode t) ;; word wrapping
   (use-file-dialog nil) ;; I want to keep everything in emacs pls
   (use-dialog-box nil)
@@ -138,17 +123,20 @@
   (ring-bell-function 'ignore)) ;; the ring bell always annoyed me tbh
 
 (use-package inhibit-mouse
-  :ensure t
   :config
   (inhibit-mouse-mode))
 
 (use-package doom-themes
-  :ensure t
+  :defer t
   :init
   (load-theme 'doom-gruvbox t))
 
 (use-package doom-modeline
-  :ensure t
+  :custom
+  (doom-modeline-irc nil)
+  (doom-modeline-github t)
+  (doom-modeline-project-name t)
+  (doom-modeline-battery nil)
   :init
   (doom-modeline-mode 1))
 
@@ -160,7 +148,6 @@
   (dired-subtree-use-backgrounds nil))
 
 (use-package dired-sidebar
-  :ensure t
   :bind
   (("C-x C-n" . dired-sidebar-toggle-sidebar))
   :commands
@@ -179,14 +166,12 @@
   ("C-x C-b" . ibuffer))
 
 (when (memq window-system '(mac ns x))
-(use-package exec-path-from-shell
-  :defer t
-  :ensure t
-  :config
-  (exec-path-from-shell-initialize)))
+  (use-package exec-path-from-shell
+    :config
+    (exec-path-from-shell-initialize)))
 
 (use-package which-key
-  :ensure t
+  
   :custom
   (which-key-popup-type 'side-window)
   :config
@@ -202,6 +187,7 @@
   (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
   :init
   (vertico-mode)
+  :config
   (defun my/vertico-insert ()
     (interactive)
     (let* ((mb (minibuffer-contents-no-properties))
@@ -209,7 +195,32 @@
       (cond ((string-match-p "^[/~:]" lc) (self-insert-command 1 ?/))
             ((file-directory-p (vertico--candidate)) (vertico-insert))
             (t (self-insert-command 1 ?/)))))
+  
+  :bind
+  (:map vertico-map
+         ("/" . #'my/vertico-insert)))
 
+(use-package vertico-directory
+  :straight nil
+  :after vertico
+  ;; More convenient directory navigation commands
+  :bind (:map vertico-map
+              ("RET"   . vertico-directory-enter)
+              ("DEL"   . vertico-directory-delete-char)
+              ("M-DEL" . vertico-directory-delete-word))
+  ;; Tidy shadowed file names
+  :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+
+(use-package vertico-buffer
+  :straight nil
+  :after vertico)
+
+(use-package vertico-multiform
+  :straight nil
+  :after vertico
+  :bind
+  (:map vertico-multiform-map ("M-H" . vertico-multiform-buffer-grid))
+  :config
   (setq vertico-multiform-commands
         '(("\\`execute-extended-command" unobtrusive
            (vertico-flat-annotate . t)
@@ -242,22 +253,7 @@
         (when (and (bound-and-true-p vertico--input)
                    (fboundp 'vertico-multiform-unobtrusive))
           (vertico-multiform-unobtrusive)))))
-  
-  (add-hook 'embark-collect-mode-hook #'+embark-live-vertico)
-  
-  :bind
-  (:map vertico-map
-        ("/" . #'my/vertico-insert)))
 
-(use-package vertico-buffer
-  :after vertico)
-
-(use-package vertico-grid
-  :after vertico)
-
-(use-package vertico-multiform
-  :after vertico
-  :init
   (defun vertico-multiform-buffer-grid ()
     "Toggle displaying Vertico as a grid in a large window (like a regular buffer)."
     (interactive)
@@ -266,18 +262,80 @@
       (setcar vertico-multiform--stack '(vertico-buffer-mode vertico-grid-mode))
       (vertico-multiform--toggle 1)))
   
-  :bind
-  (:map vertico-multiform-map ("M-H" . vertico-multiform-buffer-grid)))
+  (add-hook 'embark-collect-mode-hook #'+embark-live-vertico))
 
-(use-package vertico-directory
+(use-package vertico-posframe
   :after vertico
-  ;; More convenient directory navigation commands
-  :bind (:map vertico-map
-              ("RET"   . vertico-directory-enter)
-              ("DEL"   . vertico-directory-delete-char)
-              ("M-DEL" . vertico-directory-delete-word))
-  ;; Tidy shadowed file names
-  :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+  :custom
+  (vertico-multiform-commands
+   '((consult-line
+      posframe
+      (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+      (vertico-posframe-border-width . 10)
+      ;; NOTE: This is useful when emacs is used in both in X and
+      ;; terminal, for posframe do not work well in terminal, so
+      ;; vertico-buffer-mode will be used as fallback at the
+      ;; moment.
+      (vertico-posframe-fallback-mode . vertico-buffer-mode))
+     (consult-ripgrep
+      posframe
+      (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+      (vertico-posframe-border-width . 10)
+      ;; NOTE: This is useful when emacs is used in both in X and
+      ;; terminal, for posframe do not work well in terminal, so
+      ;; vertico-buffer-mode will be used as fallback at the
+      ;; moment.
+      (vertico-posframe-fallback-mode . vertico-buffer-mode))
+     (consult-locate
+      posframe
+      (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+      (vertico-posframe-border-width . 10)
+      ;; NOTE: This is useful when emacs is used in both in X and
+      ;; terminal, for posframe do not work well in terminal, so
+      ;; vertico-buffer-mode will be used as fallback at the
+      ;; moment.
+      (vertico-posframe-fallback-mode . vertico-buffer-mode))
+     (consult-find
+      posframe
+      (vertico-posframe-poshandler . posframe-poshandler-point-bottom-center)
+      (vertico-posframe-border-width . 10)
+      ;; NOTE: This is useful when emacs is used in both in X and
+      ;; terminal, for posframe do not work well in terminal, so
+      ;; vertico-buffer-mode will be used as fallback at the
+      ;; moment.
+      (vertico-posframe-fallback-mode . vertico-buffer-mode))
+     (consult-grep
+      posframe
+      (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+      (vertico-posframe-border-width . 10)
+      ;; NOTE: This is useful when emacs is used in both in X and
+      ;; terminal, for posframe do not work well in terminal, so
+      ;; vertico-buffer-mode will be used as fallback at the
+      ;; moment.
+      (vertico-posframe-fallback-mode . vertico-buffer-mode))
+     (consult-git-grep
+      posframe
+      (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+      (vertico-posframe-border-width . 10)
+      ;; NOTE: This is useful when emacs is used in both in X and
+      ;; terminal, for posframe do not work well in terminal, so
+      ;; vertico-buffer-mode will be used as fallback at the
+      ;; moment.
+      (vertico-posframe-fallback-mode . vertico-buffer-mode))
+     (consult-line-multi
+      posframe
+      (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+      (vertico-posframe-border-width . 10)
+      ;; NOTE: This is useful when emacs is used in both in X and
+      ;; terminal, for posframe do not work well in terminal, so
+      ;; vertico-buffer-mode will be used as fallback at the
+      ;; moment.
+      (vertico-posframe-fallback-mode . vertico-buffer-mode))
+     (t posframe
+        (vertico-posframe-poshandler . posframe-poshandler-frame-bottom-center)
+        (vertico-posframe-fallback-mode . vertico-mode))))
+  :config
+  (vertico-multiform-mode 1))
 
 ;; Persist history over Emacs restarts. Vertico sorts by history position.
 (use-package savehist
@@ -294,19 +352,18 @@
   (completion-pcm-leading-wildcard t))
 
 (use-package marginalia
-  :ensure t
   :config
   (marginalia-mode))
 
   ;; Example configuration for Consult
 (use-package consult-flycheck
-  :ensure t
+  
   :commands
   consult-flycheck)
 
 (use-package consult
   ;; Replace bindings. Lazily loaded by `use-package'.
-  :ensure t
+  
   :bind (;; C-c bindings in `mode-specific-map'
          ("C-c M-x" . consult-mode-command)
          ("C-c h" . consult-history)
@@ -402,7 +459,7 @@
 )
 
 (use-package embark
-  :ensure t
+  
   :bind
   (("C-." . embark-act)
    ("M-." . embark-dwim)
@@ -416,11 +473,19 @@
                  (window-parameters (mode-line-format . none)))))
 
 (use-package embark-consult
-  :ensure t)
+  )
+
+(use-package transient
+    )
+
+(use-package context-transient
+  
+  :defer nil
+  :bind
+  ("C-c t SPC" . context-transient)) 
 
 (use-package corfu
-  :demand t
-  :ensure t
+  
   :custom
   (setq corfu-auto t
 	corfu-auto-delay 0
@@ -445,27 +510,23 @@
 			      completion-category-defaults nil)))
   :bind
   (:map corfu-map ("SPC" . corfu-insert-separator))
-  :init
-  (global-corfu-mode)
-  (corfu-history-mode)
-  (corfu-popupinfo-mode)
   :config
   (keymap-unset corfu-map "RET")
   (keymap-set corfu-map "RET" `( menu-item "" nil :filter
 				 ,(lambda (&optional _)
 				    (and (derived-mode-p 'eshell-mode 'comint-mode)
-					 #'corfu-send)))))
+					 #'corfu-send))))
+  (global-corfu-mode)
+  (corfu-history-mode)
+  (corfu-popupinfo-mode))
 
 (use-package corfu-candidate-overlay
-  :ensure t
   :demand t
   :after corfu
   :config
   (corfu-candidate-overlay-mode 1)
   (keymap-global-set "C-<tab>" 'completion-at-point)
   (keymap-global-set "C-<iso-lefttab>" 'corfu-candidate-overlay-complete-at-point))
-
-(add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter)
 
 ;; Optionally:
 (setq nerd-icons-corfu-mapping
@@ -498,8 +559,13 @@
 (add-hook 'completion-at-point-functions #'cape-elisp-block)
 (add-hook 'completion-at-point-functions #'cape-history))
 
+(use-package prescient)
+
+(use-package corfu-prescient)
+
+(use-package vertico-prescient)
+
 (use-package recentf
-  :ensure t
   :config
   (add-to-list 'recentf-exclude
                (recentf-expand-file-name no-littering-var-directory))
@@ -508,12 +574,12 @@
   (recentf-mode t))
 
 (use-package elscreen
-  :ensure t
+  
   :hook
   (emacs-startup . elscreen-start))
 
 (use-package golden-ratio
-  :ensure t
+  
   :custom
   (golden-ratio-auto-scale t)
   :config
@@ -552,6 +618,7 @@
 (buffer-guardian-mode 1))
 
 (use-package bufferfile
+  :defer t
   :commands
   (bufferfile-copy
    bufferfile-rename
@@ -561,20 +628,25 @@
   (bufferfile-delete-switch-to 'parent-directory))
 
 (use-package clipetty
-  :ensure t
+  
+  :defer t
   :if
   (not (display-graphic-p))
   :hook
   (after-init . global-clipetty-mode))
 
 (use-package kkp
-  :ensure t
+  
+  :defer t
+  :if
+  (not (display-graphic-p))
   :hook
   (tty-setup . global-kkp-mode))
 
 (use-package popterm
-  :ensure t
+  
   :if (display-graphic-p) ;; I only want to use popterm if I'm using the GUI version.
+  :defer t
   :bind (("C-`"   . popterm-toggle)
          ("C-~"   . popterm-toggle-cd)
          ([f9]    . popterm-window-toggle))
@@ -582,8 +654,7 @@
   (setq popterm-backend        'ghostel     ; or 'ghostel, 'eat, 'shell, 'eshell
         popterm-display-method 'posframe  ; or 'window, 'fullscreen
         popterm-scope          'project   ; or 'frame, 'dedicated, nil
-        popterm-auto-cd        t)
-  (popterm-global-mode 1))
+        popterm-auto-cd        t))
 
 (defun my/convert-time (&optional DATE TIME ZONE)
   (encode-time
@@ -643,11 +714,11 @@
       (server-start))
   (my/open-org-agenda)
   (dired-sidebar-toggle-sidebar org-directory)
-  (select-window (previous-window))
+  (select-window (get-buffer-window dashboard-buffer-name))
   (current-buffer))
 
 (use-package dashboard 
-  :ensure t
+  
   :config
   (add-hook 'dashboard-after-initialize-hook #'my/window-setup)
   (dashboard-setup-startup-hook)
@@ -664,6 +735,13 @@
   (dashboard-icon-type 'nerd-icons)
   (dashboard-set-heading-icons t)
   (dashboard-set-file-icons t))
+
+(use-package reverse-im
+  
+  :custom
+  (reverse-im-input-methods '("korean-hangul"))
+  :config
+  (reverse-im-mode t))
 
 (defun my/toggle-input-method ()
   (interactive)
@@ -687,7 +765,7 @@
   (interactive)
   (select-window (split-window-right)))
 
-(defun my/split-window-up ()
+(defun my/split-window-below ()
   (interactive)
   (select-window (split-window-below)))
 
@@ -695,109 +773,110 @@
 (keymap-global-set "C-x 3" #'my/split-window-left)
 
 (use-package vertigo
-  :ensure t
+  :custom
+  (vertigo-max-digits 3)
+  (vertigo-cut-off 9) 
   :config
   (keymap-global-set "M-n" #'vertigo-jump-down) ;; based on C-n to go to the next line
   (keymap-global-set "M-p" #'vertigo-jump-up)) ;; based on C-p to go to the previous line
 
 (use-package meow
-  :ensure t
+  :custom
+  (meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
   :config
-  (defun meow-setup ()
-    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-    (meow-motion-define-key
-     '("j" . meow-next)
-     '("k" . meow-prev)
-     '("<escape>" . ignore))
-    (meow-leader-define-key
-     ;; Use SPC (0-9) for digit arguments.
-     '("1" . meow-digit-argument)
-     '("2" . meow-digit-argument)
-     '("3" . meow-digit-argument)
-     '("4" . meow-digit-argument)
-     '("5" . meow-digit-argument)
-     '("6" . meow-digit-argument)
-     '("7" . meow-digit-argument)
-     '("8" . meow-digit-argument)
-     '("9" . meow-digit-argument)
-     '("0" . meow-digit-argument)
-     '("/" . meow-keypad-describe-key)
-     '("." . embark-act)
-     '(";" . embark-dwim)
-     '("?" . meow-cheatsheet)
-     '("a" . beginning-of-line)
-     '("e" . end-of-line)
-     '("j" . vertigo-jump-down)
-     '("k" . vertigo-jump-up)
-     '("l" . recenter-top-bottom))
-    (meow-normal-define-key
-     '("0" . meow-expand-0)
-     '("9" . meow-expand-9)
-     '("8" . meow-expand-8)
-     '("7" . meow-expand-7)
-     '("6" . meow-expand-6)
-     '("5" . meow-expand-5)
-     '("4" . meow-expand-4)
-     '("3" . meow-expand-3)
-     '("2" . meow-expand-2)
-     '("1" . meow-expand-1)
-     '("-" . negative-argument)
-     '(";" . meow-reverse)
-     '("," . meow-inner-of-thing)
-     '("." . meow-bounds-of-thing)
-     '("[" . meow-beginning-of-thing)
-     '("]" . meow-end-of-thing)
-     '("a" . meow-append)
-     '("A" . meow-open-below)
-     '("b" . meow-back-word)
-     '("B" . meow-back-symbol)
-     '("c" . meow-change)
-     '("d" . meow-delete)
-     '("D" . meow-backward-delete)
-     '("e" . meow-next-word)
-     '("E" . meow-next-symbol)
-     '("f" . meow-find)
-     '("g" . meow-cancel-selection)
-     '("G" . meow-grab)
-     '("h" . meow-left)
-     '("H" . meow-left-expand)
-     '("i" . meow-insert)
-     '("I" . meow-open-above)
-     '("j" . meow-next)
-     '("J" . meow-next-expand)
-     '("k" . meow-prev)
-     '("K" . meow-prev-expand)
-     '("l" . meow-right)
-     '("L" . meow-right-expand)
-     '("m" . meow-join)
-     '("n" . meow-search)
-     '("o" . meow-block)
-     '("O" . meow-to-block)
-     '("p" . meow-yank)
-     '("q" . meow-quit)
-     '("Q" . meow-goto-line)
-     '("r" . meow-replace)
-     '("R" . meow-swap-grab)
-     '("s" . meow-kill)
-     '("t" . meow-till)
-     '("u" . meow-undo)
-     '("U" . meow-undo-in-selection)
-     '("v" . meow-visit)
-     '("w" . meow-mark-word)
-     '("W" . meow-mark-symbol)
-     '("x" . meow-line)
-     '("X" . meow-goto-line)
-     '("y" . meow-save)
-     '("Y" . meow-sync-grab)
-     '("z" . meow-pop-selection)
-     '("'" . repeat)
-     '("<escape>" . ignore)))
-  (meow-setup)
-  (meow-global-mode 1))
+  (meow-motion-define-key
+   '("j" . meow-next)
+   '("k" . meow-prev)
+   '("<escape>" . ignore))
+  (meow-leader-define-key
+   ;; Use SPC (0-9) for digit arguments.
+   '("1" . meow-digit-argument)
+   '("2" . meow-digit-argument)
+   '("3" . meow-digit-argument)
+   '("4" . meow-digit-argument)
+   '("5" . meow-digit-argument)
+   '("6" . meow-digit-argument)
+   '("7" . meow-digit-argument)
+   '("8" . meow-digit-argument)
+   '("9" . meow-digit-argument)
+   '("0" . meow-digit-argument)
+   '("/" . meow-keypad-describe-key)
+   '("." . embark-act)
+   '(";" . embark-dwim)
+   '("?" . meow-cheatsheet)
+   '("a" . beginning-of-line)
+   '("e" . end-of-line)
+   '("j" . vertigo-jump-down)
+   '("k" . vertigo-jump-up)
+   '("l" . recenter-top-bottom))
+  (meow-normal-define-key
+   '("0" . meow-expand-0)
+   '("9" . meow-expand-9)
+   '("8" . meow-expand-8)
+   '("7" . meow-expand-7)
+   '("6" . meow-expand-6)
+   '("5" . meow-expand-5)
+   '("4" . meow-expand-4)
+   '("3" . meow-expand-3)
+   '("2" . meow-expand-2)
+   '("1" . meow-expand-1)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
+   '("a" . meow-append)
+   '("A" . meow-open-below)
+   '("b" . meow-back-word)
+   '("B" . meow-back-symbol)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+   '("D" . meow-backward-delete)
+   '("e" . meow-next-word)
+   '("E" . meow-next-symbol)
+   '("f" . meow-find)
+   '("g" . meow-cancel-selection)
+   '("G" . meow-grab)
+   '("h" . meow-left)
+   '("H" . meow-left-expand)
+   '("i" . meow-insert)
+   '("I" . meow-open-above)
+   '("j" . meow-next)
+   '("J" . meow-next-expand)
+   '("k" . meow-prev)
+   '("K" . meow-prev-expand)
+   '("l" . meow-right)
+   '("L" . meow-right-expand)
+   '("m" . meow-join)
+   '("n" . meow-search)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-yank)
+   '("q" . meow-quit)
+   '("Q" . meow-goto-line)
+   '("r" . meow-replace)
+   '("R" . meow-swap-grab)
+   '("s" . meow-kill)
+   '("t" . meow-till)
+   '("u" . meow-undo)
+   '("U" . meow-undo-in-selection)
+   '("v" . meow-visit)
+   '("w" . meow-mark-word)
+   '("W" . meow-mark-symbol)
+   '("x" . meow-line)
+   '("X" . meow-goto-line)
+   '("y" . meow-save)
+   '("Y" . meow-sync-grab)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . ignore))
+  (meow-global-mode t))
 
 
 (use-package helpful
-  :ensure t
+  
+  :defer t
   :init
   (keymap-global-set "C-h f" #'helpful-callable)
   (keymap-global-set "C-h v" #'helpful-variable)
@@ -808,8 +887,7 @@
   (keymap-global-set "C-h F" #'helpful-function))
 
 (use-package ace-window
-  :ensure t
-  :demand t
+  
   :custom
   (aw-background nil)
   :config
@@ -832,8 +910,7 @@
   (keymap-global-set "M-o" 'ace-window))
 
 (use-package switchy-window
-  :ensure t
-  :demand t
+  
   :custom
   (switchy-window-delay 1.5)
   :bind
@@ -843,25 +920,30 @@
   (switchy-window-minor-mode))
 
 (use-package plstore
-  :ensure t
-  :demand t
   :config
   (add-to-list 'plstore-encrypt-to "dania.moriazi01@khu.ac.kr")
   (setq epg-pinentry-mode 'loopback))
 
-(straight-use-package 'org)
-(with-eval-after-load "org"
-  (setq org-agenda-start-on-weekday 0)
-  (setq org-directory (file-truename "~/org/"))
-  (setq org-startup-indented t)
-  (setq org-M-RET-may-split-line '((item . nil)))
-  (setq org-support-shift-select t)
-  (setq org-return-follows-link t)
-  (setq org-refile-allow-creating-parent-nodes 'confirm)
-  (setq org-refile-targets '((org-agenda-files :maxlevel . 3)))
-
+(use-package org
+  :custom
+  (org-directory (file-truename "~/org/"))
+  (org-agenda-start-on-weekday 0)
+  (org-startup-indented t)
+  (org-M-RET-may-split-line '((item . nil)))
+  (org-support-shift-select t)
+  (org-return-follows-link t)
+  (org-refile-allow-creating-parent-nodes 'confirm)
+  (org-refile-targets '((org-agenda-files :maxlevel . 3)))
+  :config
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((python . t)
+     (emacs-lisp . t)
+     (org . t)
+     (latex . t)))
+  
   (keymap-global-set "C-c c" #'org-capture)
-  (keymap-global-set "C-c l" #'org-store-link-props)
+  (keymap-global-set "C-c l" #'org-link-store-props)
   (keymap-global-set "C-c a" #'org-agenda)
 
   (unless (display-graphic-p)
@@ -871,7 +953,6 @@
 
 ;; org-ibullets for nice-looking bullets
 (use-package org-ibullets
-  :ensure t
   :commands org-ibullets-mode
   :straight (org-ibullets
              :type git
@@ -881,8 +962,7 @@
   (org-mode . org-ibullets-mode))
 
 ;; org-modern-indent because org-modern doesn't work with org-indent-mode
-(use-package org-modern-indent
-  :ensure nil
+(use-package org-modern-indent    
   :straight (org-modern-indent
              :type git
              :host github
@@ -892,7 +972,6 @@
 
 ;; org-modern
 (use-package org-modern
-  :ensure t
   :custom    
   (org-modern-hide-stars nil)
   (org-modern-star 'replace)
@@ -938,7 +1017,7 @@
 
 ;; and then we use org-appear to unhide the emphasis markers when hovered over
 (use-package org-appear
-  :ensure t
+  
   :hook
   (org-mode . org-appear-mode))
 
@@ -972,7 +1051,7 @@
 	  ":#" "#")
     ":"))
 
-(defun my/get-entry-type (link)
+(defun my/gh-get-entry-type (link)
   (if (string= (my/get-sep link) ":#")
       "pr"
     "issue"))
@@ -988,7 +1067,7 @@
       (if (string-search "#" link)
 	  (progn (let* ((repo (nth 0 (my/gh-parse-link link)))
 			(id (nth 1 (my/gh-parse-link link)))
-			(entry (my/get-entry-type link)))
+			(entry (my/gh-get-entry-type link)))
 		   (format "%s: %s"
 			   (string-replace ":#" "#"
 					   (string-remove-prefix "gh:" link))
@@ -1161,30 +1240,28 @@
                                        :user "dania.moriazi01@khu.ac.kr^secret"))
 
 (use-package org-gcal
-  :ensure t
-  :demand t
+  
   :after org
   :config
   (setq org-gcal-fetch-file-alist '(("dania.moriazi01@khu.ac.kr" . "/home/dania/org/calendar.org"))))
 
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((python . t)
-   (emacs-lisp . t)
-   (org . t)
-   (latex . t)))
-
 (defun do-org-confirm-babel-evaluations (lang body)
-  (not
-   (or
-    (string= lang "python")
-    (string= lang "calc"))))
+  (not (or (string= lang "python")
+           (string= lang "calc"))))
+
 (setq-local org-confirm-babel-evaluate 'do-org-confirm-babel-evaluations)
 
+(use-package org-projectile
+  
+  :after projectile)
+
 (use-package org-project-capture
-  :ensure t
+  
+  :after org-projectile
   :bind
-  (("C-c n p" . org-project-capture-project-todo-completing-read))
+  (("C-c n p" . org-project-capture-project-todo-completing-read)
+   ("C-c n t" . org-project-capture-capture-for-current-project)
+   ("C-c n a" . org-project-capture-agenda-for-current-project))
   :config
   (progn
     (setq org-project-capture-backend
@@ -1193,42 +1270,38 @@
     (org-project-capture-single-file)))
 
 (use-package treesit-auto
-  :ensure t
-  :custom
-  (treesit-auto-langs '(python rust typescript javascript cpp r ruby))
-  (treesit-auto-install 'prompt)
-  :config
-  (treesit-auto-add-to-auto-mode-alist 'all)
-  (global-treesit-auto-mode))
+:custom
+(treesit-auto-install 'prompt)
+:config
+(treesit-auto-add-to-auto-mode-alist 'all)
+(global-treesit-auto-mode))
 
 (use-package tree-sitter
-  :ensure t
+  :after treesit-auto
+  :hook
+  (tree-sitter-after-on . tree-sitter-hl-mode)
   :config
   (setq treesit-extra-load-path (list (file-truename "~/.emacs.d/tree-sitter/")))
   (setq treesit-language-source-alist
-	'((bash "https://github.com/tree-sitter/tree-sitter-bash")
-	  (cmake "https://github.com/uyha/tree-sitter-cmake")
-	  (css "https://github.com/tree-sitter/tree-sitter-css")
-	    (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
-	  (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-	  (go "https://github.com/tree-sitter/tree-sitter-go")
-	  (html "https://github.com/tree-sitter/tree-sitter-html")
-	  (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-	  (json "https://github.com/tree-sitter/tree-sitter-json")
-	  (make "https://github.com/alemuller/tree-sitter-make")
-	  (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-	  (python "https://github.com/tree-sitter/tree-sitter-python")
-	  (toml "https://github.com/tree-sitter/tree-sitter-toml")
-	  (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-	  (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-	  (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
-  
-  (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode)
-  (global-tree-sitter-mode))
+   '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+     (cmake "https://github.com/uyha/tree-sitter-cmake")
+     (css "https://github.com/tree-sitter/tree-sitter-css")
+     (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
+     (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+     (go "https://github.com/tree-sitter/tree-sitter-go")
+     (html "https://github.com/tree-sitter/tree-sitter-html")
+     (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+     (json "https://github.com/tree-sitter/tree-sitter-json")
+     (make "https://github.com/alemuller/tree-sitter-make")
+     (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+     (python "https://github.com/tree-sitter/tree-sitter-python")
+     (toml "https://github.com/tree-sitter/tree-sitter-toml")
+     (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+     (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+     (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+     (global-tree-sitter-mode t))
 
 (use-package tree-sitter-langs
-  :ensure t
-  :after tree-sitter
   :config
   (puthash 'python-ts-mode 'python tree-sitter-major-mode-language-table)
   (puthash 'c++-ts-mode 'cpp tree-sitter-major-mode-language-table)
@@ -1236,12 +1309,13 @@
   (puthash 'js-ts-mode 'js tree-sitter-major-mode-language-table)
   (puthash 'typescript-ts-mode 'ts tree-sitter-major-mode-language-table)
   (puthash 'ruby-ts-mode 'ruby tree-sitter-major-mode-language-table))
+  
 
 (use-package conda-projectile
-  :after conda)
+  :after conda
+  :straight nil)
   
 (use-package anaconda-mode
-  :ensure t
   :after conda
   :hook
   (python-mode . anaconda-mode)
@@ -1250,84 +1324,87 @@
   (python-ts-mode . anaconda-eldoc-mode))
 
  (use-package conda
-   :ensure t
+   :hook
+   (treemacs-mode . conda-autoactivate-mode)
+   :defer t
    :config
    (conda-env-initialize-interactive-shells)
-   (conda-env-initialize-eshell)
-   (conda-env-autoactivate-mode 1)
-
-   (add-hook 'find-file-hook (lambda ()
-                               (when (bound-and-true-p conda-project-env-path)
-                                 (conda-env-activate-for-buffer)))))
+   (conda-env-initialize-eshell))
 
 (use-package python
-:ensure nil
-:after tree-sitter
-:mode
-(("\\.py\\'" . python-ts-mode)
- ("\\.pyi\\'" . python-ts-mode)
- ("\\.pyw\\'" . python-ts-mode))
-:hook
-(python-mode . lsp-deferred)
-(python-ts-mode . lsp-deferred)
-(python-mode . subword-mode)
-(python-ts-mode . subword-mode)
-(python-ts-mode . python-mode)
-:custom
-(python-indent-offset 4)
-(setq PYTHONPATH (file-truename "~/miniforge3/bin/python"))
-(setenv "PYTHONPATH" PYTHONPATH)
-(setq python-shell-interpreter PYTHONPATH)
-(setq python-interpreter PYTHONPATH)
-(setq python-shell-exec-path conda-env-current-path)
-(define-derived-mode python-mode prog-mode "Python"
-  ...
-  (cond
-   ;; Tree-sitter.
-   ((treesit-ready-p 'python)
-    (treesit-parser-create 'python)
-    (setq-local treesit-font-lock-settings python--treesit-settings)
-    (setq-local treesit-font-lock-feature-list
-		  '((comment string function-name)
-                  (class-name keyword builtin)
-                  (string-interpolation decorator)))
-    (treesit-major-mode-setup))
-   (t
-    ;; No tree-sitter, do nothing or fallback to another mode.
-    ...))))
+  :defer t
+  :after tree-sitter conda
+  :mode
+  (("\\.py\\'" . python-ts-mode)
+   ("\\.pyi\\'" . python-ts-mode)
+   ("\\.pyw\\'" . python-ts-mode))
+  :hook
+  (python-mode . lsp-deferred)
+  (python-ts-mode . lsp-deferred)
+  (python-mode . subword-mode)
+  (python-ts-mode . subword-mode)
+  (python-ts-mode . python-mode)
+  :custom
+  (python-indent-offset 4)
+  (setq PYTHONPATH (file-truename "~/miniforge3/bin/python"))
+  (setenv "PYTHONPATH" PYTHONPATH)
+  (setq python-shell-interpreter PYTHONPATH)
+  (setq python-interpreter PYTHONPATH)
+  (setq python-shell-exec-path conda-env-current-path)
+  (define-derived-mode python-mode prog-mode "Python"
+    ...
+    (cond
+     ;; Tree-sitter.
+     ((treesit-ready-p 'python)
+      (treesit-parser-create 'python)
+      (setq-local treesit-font-lock-settings python--treesit-settings)
+      (setq-local treesit-font-lock-feature-list
+                  '((comment string function-name)
+                    (class-name keyword builtin)
+                    (string-interpolation decorator)))
+      (treesit-major-mode-setup))
+     (t
+      ;; No tree-sitter, do nothing or fallback to another mode.
+      ...))))
 
 (use-package code-cells
-:ensure t
-:hook
-(code-cells-mode . run-python)
-:bind
-(:map code-cells-mode-map
-	("C-c C-c" . code-cells-eval)
-	("M-p" . code-cells-backward-cell)
-	("M-n" . code-cells-forward-cell)
+  :defer t
+  :mode
+  ("\\.ipynb\\'" . code-cells-mode)
+  :hook
+  (code-cells-mode . run-python)
+  :bind
+  (:map code-cells-mode-map
+        ("C-c C-c" . code-cells-eval)
+        ("M-p" . code-cells-backward-cell)
+        ("M-n" . code-cells-forward-cell)
 	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
-:config
-(add-to-list 'code-cells-convert-ipynb-style '("jupytext" "--to" "py:percent"))
-(defun my/code-cells-new-cell ()
-  (interactive)
-  (newline 2)
-  (code-cells-forward-cell)
-  (insert "# %%")
-  (newline))
+  :config
+  (add-to-list 'code-cells-convert-ipynb-style '("jupytext" "--to" "py:percent"))
+  (defun my/code-cells-new-cell ()
+    (interactive)
+    (newline 2)
+    (code-cells-forward-cell)
+    (insert "# %%")
+    (newline))
 
-(defun my/code-cells-eval-and-step ()
-  (interactive)
-  (call-interactively #'code-cells-eval-and-step)
-  (when (= (point) (point-max))
-    (my/code-cells-new-cell)))
-
-(keymap-set code-cells-mode-map "C-c C-n" #'my/code-cells-new-cell)
-(keymap-set code-cells-mode-map "C-c C-s" #'my/code-cells-eval-and-step)
-
-(add-hook 'python-mode-hook 'code-cells-mode-maybe))
+  (defun my/code-cells-eval-and-step ()
+    (interactive)
+    (call-interactively #'code-cells-eval-and-step)
+    (when (= (point) (point-max))
+      (my/code-cells-new-cell)))
+  
+  (defun my/code-cells-write-ipynb (file)
+    (when (string= (file-name-extension file) "ipynb")
+        (code-cells-write-ipynb file)))
+  
+  (add-hook 'treemacs-create-file-functions #'my/code-cells-write-ipynb)
+  
+  (keymap-set code-cells-mode-map "C-c C-n" #'my/code-cells-new-cell)
+  (keymap-set code-cells-mode-map "C-c C-s" #'my/code-cells-eval-and-step))
 
 (use-package dockerfile-ts-mode
-  :ensure nil
+  :straight nil
   :defer t
   :mode
   (("Dockerfile\\'" . dockerfile-ts-mode)
@@ -1335,8 +1412,8 @@
   :hook
   (dockerfile-ts-mode . lsp-deferred))
 
-  (use-package typescript-ts-mode
-  :ensure nil
+(use-package typescript-ts-mode
+  :straight nil
   :defer t
   :mode
   (("\\.ts\\'" . typescript-ts-mode)
@@ -1347,7 +1424,7 @@
   (typescript-ts-mode . subword-mode))
 
 (use-package tsx-ts-mode
-  :ensure nil
+  :straight nil
   :defer t
   :mode
   (("\\.tsx\\'" . tsx-ts-mode)
@@ -1357,7 +1434,7 @@
   (tsx-ts-mode . subword-mode))
 
 (use-package js-ts-mode
-  :ensure nil
+  :straight nil
   :defer t
   :mode
   (("\\.js\\'" . js-ts-mode)
@@ -1368,7 +1445,7 @@
   (js-ts-mode . subword-mode))
 
 (use-package lsp-mode
-  :ensure t
+  :defer t
   :init
   (setq lsp-keymap-prefix "C-c l")
   :hook
@@ -1379,7 +1456,6 @@
   :commands lsp)
 
 (use-package lsp-ui
-  :ensure t
   :after lsp-mode
   :commands
   lsp-ui-mode
@@ -1389,16 +1465,18 @@
   (lsp-ui-doc-mode 1))
 
 (use-package lsp-treemacs
-  :ensure t
   :after lsp-mode
   :commands
   lsp-treemacs-errors-list
   :hook
   (lsp-mode . lsp-treemacs-sync-mode))
 
+(use-package consult-lsp
+  :after consult lsp-mode)
+
 (use-package meow-tree-sitter
-  :ensure t
-  :after meow
+  :defer t
+  :after meow tree-sitter
   :init
   (meow-tree-sitter-register-defaults)
   :config
@@ -1406,111 +1484,101 @@
    '("o" . meow-tree-sitter-node)))
 
 (use-package treemacs-nerd-icons
-  :ensure t
-  :if (display-graphic-p)
-  :defer nil)
+  :if (display-graphic-p))
+
+(use-package treemacs-projectile)
 
 (use-package treemacs
-  :ensure t
-  :demand t
+  :defer t
   :init
   (if (display-graphic-p)
       (treemacs-load-theme "nerd-icons"))
+
+  (keymap-global-set "C-c t o" #'treemacs-select-window)
+  (keymap-global-set "C-c t t" #'treemacs)
   :hook
   (treemacs-mode . treemacs-peek-mode)
   (treemacs-mode . (lambda () (dired-sidebar-hide-sidebar)))
   :custom
   (treemacs-display-in-side-window nil)
   :config
-  (treemacs-projectile)
-  (keymap-global-set "C-c t o" #'treemacs-select-window)
-  (keymap-global-set "C-c t t" #'treemacs))
+  (treemacs-projectile))
 
 (use-package undo-tree
-  :ensure t
-  :demand t
+  :hook
+  (emacs-startup . global-undo-tree-mode)
   :config
   (keymap-global-set "C-x u" #'my/undo-tree-visualize)
-  (global-undo-tree-mode))
 
   (defun my/undo-tree-visualize ()
-  (interactive)
-  (if (and (buffer-file-name) (treemacs-get-local-window))
-      (progn
-        (let ((original-buffer (window-buffer (other-window-for-scrolling))))
-          (unless undo-tree-mode
-            (undo-tree-mode))
-          (undo-tree-visualize)
-          (switch-to-buffer (get-buffer original-buffer)))
-        (treemacs-select-window)
-        (my/split-window-below)
-        (switch-to-buffer
-         (get-buffer undo-tree-visualizer-buffer-name)))
-    (undo-tree-visualize)))
+    (interactive)
+    (if (and (buffer-file-name) (treemacs-get-local-window))
+        (progn
+          (let ((original-buffer (window-buffer (other-window-for-scrolling))))
+            (unless undo-tree-mode
+              (undo-tree-mode))
+            (undo-tree-visualize)
+            (switch-to-buffer (get-buffer original-buffer)))
+          (treemacs-select-window)
+          (my/split-window-below)
+          (switch-to-buffer
+           (get-buffer undo-tree-visualizer-buffer-name)))
+      (undo-tree-visualize)))
 
-(defun my/undo-tree-visualizer-quit ()
-  (interactive)
-  (let* ((win-list (window-at-side-list)))
-    (undo-tree-visualizer-quit)
-    (dolist (win win-list)
-      (when
-          (string= (buffer-name (window-buffer win)) undo-tree-visualizer-buffer-name)
-        (delete-window win)))))
+  (defun my/undo-tree-visualizer-quit ()
+    (interactive)
+    (let* ((win-list (window-at-side-list)))
+      (undo-tree-visualizer-quit)
+      (dolist (win win-list)
+        (when
+            (string= (buffer-name (window-buffer win)) undo-tree-visualizer-buffer-name)
+          (delete-window win)))))
+  
+  (defun my/refresh-undo-tree-visualizer (buffer)
+    (my/undo-tree-visualizer-quit)
+    (my/undo-tree-visualize)
+    (get-buffer buffer)
+    (other-window 1))
+  
+  (add-hook 'treemacs-after-visit-functions #'my/refresh-undo-tree-visualizer))
 
-(defun my/refresh-undo-tree-visualizer (buffer)
-  (my/undo-tree-visualizer-quit)
-  (my/undo-tree-visualize)
-  (get-buffer buffer)
-  (other-window 1))
+(use-package pinentry
+  :config
+  (pinentry-start))
 
-(add-hook 'treemacs-after-visit-functions #'my/refresh-undo-tree-visualizer)
+(use-package magit
+  :bind
+  (("C-x g" . magit-status)
+   ("C-x M-g" . magit-dispatch)
+   ("C-c M-g" . magit-file-dispatch))
+  :config
+  (remove-hook 'server-switch-hook 'magit-commit-diff)
+  (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff))
 
-  (use-package transient
-    :ensure t)
-
-  (use-package pinentry
-    :ensure t
-    :config
-    (pinentry-start))
-
-  (use-package magit
-    :ensure t
-    :demand t
-    :bind
-    (("C-x g" . magit-status)
-     ("C-x M-g" . magit-dispatch)
-     ("C-c M-g" . magit-file-dispatch))
-    :config
-    (remove-hook 'server-switch-hook 'magit-commit-diff)
-    (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff))
-
-  (use-package magit-lfs
-    :ensure t
-    :pin melpa
-    :after magit
-    :demand t)
+(use-package magit-lfs
+  :after magit)
 
 (use-package diff-hl
-  :ensure t
-  :demand t
+  :hook
+  (magit-post-refresh . diff-hl-magit-post-refresh)
+  (magit-mode . diff-hl-mode)
   :config
   (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   (add-hook 'diff-hl-mode-on-hook
-        (lambda ()
-          (unless (display-graphic-p)
-            (diff-hl-margin-local-mode)))))
+            (lambda ()
+              (unless (display-graphic-p)
+                (diff-hl-margin-local-mode)))))
 
 (use-package flycheck
-  :ensure t
+  :defer t
   :custom
   (flycheck-idle-change-delay 5)
   (flycheck-idle-buffer-switch-delay 5)
   (flycheck-check-syntax-automatically '(save idle-change mode-enabled))
-  :config
-  (global-flycheck-mode))
+  :hook
+  (prog-mode . global-flycheck-mode))
 
 (use-package flycheck-posframe
-  :ensure t
   :after flycheck
   :if (or (featurep 'tty-child-frames) (display-graphic-p))
   :init
@@ -1520,12 +1588,10 @@
   (flycheck-posframe-configure-pretty-defaults))
 
 (use-package eldoc
-  :ensure t
-  :config
-  (global-eldoc-mode))
+  :hook
+  (prog-mode . global-eldoc-mode))
 
 (use-package eldoc-box
-:ensure t
 :if (or (featurep 'tty-child-frames) (display-graphic-p))
 :bind
 (("C-<prior>" . eldoc-box-scroll-down)
@@ -1543,29 +1609,24 @@
 (setq eldoc-box-position-function #'my/eldoc-box--always-frame-top-right))
 
 (use-package codemetrics
-  :ensure t
+  :defer t
   :straight (codemetrics :type git :host github :repo "jcs-elpa/codemetrics")
   :hook
-  (lsp-mode . codemetrics-mode))
+  (tree-sitter-mode . codemetrics-mode))
 
 (use-package combobulate
-  :ensure t
-  :demand t
+  :defer t
   :straight (combobulate :type git :host github :repo "mickeynp/combobulate")
   :custom
   (combobulate-key-prefix "C-c u")
   :hook
-  ((prog-mode . combobulate-mode)))
+  ((tree-sitter-mode . combobulate-mode)))
 
 (use-package dtrt-indent
-  :ensure t
-  :demand t
   :custom
   (dtrt-indent-global-mode t))
 
 (use-package yasnippet
-  :ensure t
-  :demand t
   :custom
   (yas-snippet-dirs '("~/.emacs.d/snippets"))
   :hook
@@ -1575,138 +1636,116 @@
   (yas-reload-all))
 
 (use-package yasnippet-snippets
-  :ensure t
   :demand t
   :after yasnippet)
 
-(use-package eaf
-  :load-path "~/.emacs.d/site-lisp/emacs-application-framework"
-  :defer t
-  :custom
-  ;; See https://github.com/emacs-eaf/emacs-application-framework/wiki/Customization
-  (setq eaf-apps-to-install '("eaf-browser" "eaf-pdf-viewer"))
-  (eaf-browser-continue-where-left-off t)
-  (eaf-browser-enable-adblocker t)
-  (browse-url-browser-function 'eaf-open-browser)
-  :config
-  (defalias 'browse-web #'eaf-open-browser)) ;; unbind, see more in the Wiki
-
-(use-package eaf-browser
-  :defer t
-  :config
-  (eaf-bind-key nil "M-q" eaf-browser-keybinding))
-(use-package eaf-pdf-viewer
-  :defer t
-  :config
-  (eaf-bind-key scroll_up "C-n" eaf-pdf-viewer-keybinding)
-  (eaf-bind-key scroll_down "C-p" eaf-pdf-viewer-keybinding))
-
 (use-package arxiv-mode
-  :ensure t)
+  :defer t
+  :hook
+  (elfeed-search-mode . arxiv-mode))
 
 (use-package elfeed
-  :ensure t
+  :defer t
   :hook
   (elfeed-search-mode . elfeed-update)
   :init
-  (setq elfeed-search-filter "@2-month-ago +unread"))
+  (setq elfeed-search-filter "@2-month-ago +unread")
+  (setq elfeed-feeds '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
+  (setq arxiv_bib "~/org/references.bib")
+  (setq arxiv_pdf_loc "~/Documents/papers/arxiv/")
+  (setq org-ref-pdf-directory arxiv_pdf_loc)
+  
+  (setq bibtex-completion-library-path "~/Documents/papers/arxiv/")
+  (setq bibtex-completion-bibliography (list arxiv_bib))
+  (setq bibtex-completion-pdf-field "file")
+  :custom
+  (elfeed-search-date-format '("%y-%m-%d" 10 :left))
+  (elfeed-search-title-max-width 110)
+  :config
+  (defun concatenate-authors (authors-list)
+    "Given AUTHORS-LIST, list of plists; return string of all authors concatenated."
+    (if (> (length authors-list) 1)
+	(format "%s et al." (plist-get (nth 0 authors-list) :name))
+      (plist-get (nth 0 authors-list) :name)))
+  
+  (defun my-search-print-fn (entry)
+    "Print ENTRY to the buffer."
+    (let* ((date (elfeed-search-format-date (elfeed-entry-date entry)))
+	   (title (or (elfeed-meta entry :title)
+		      (elfeed-entry-title entry) ""))
+	   (title-faces (elfeed-search--faces (elfeed-entry-tags entry)))
+	   (entry-authors (concatenate-authors
+			   (elfeed-meta entry :authors)))
+	   (title-width (- (window-width) 10
+			   elfeed-search-trailing-width))
+	   (title-column (elfeed-format-column
+			  title 100
+			  :left))
+	   (entry-score
+	    (elfeed-format-column
+	     (number-to-string (elfeed-score-scoring-get-score-from-entry entry)) 10 :left))
+	   (authors-column (elfeed-format-column entry-authors 40 :left)))
+      (insert (propertize date 'face 'elfeed-search-date-face) " ")
+      (insert (propertize title-column
+			  'face title-faces 'kbd-help title) " ")
+      (insert (propertize authors-column
+			  'kbd-help entry-authors) " ")
+      (insert entry-score " ")))
+
+  (setq elfeed-search-print-entry-function #'my-search-print-fn)
+
+  (defun my/elfeed-entry-to-arxiv ()
+    (interactive)
+    (let* ((link (elfeed-entry-link elfeed-show-entry))
+	   (match-idx (string-match "arxiv.org/abs/\\([0-9.]*\\)" link))
+	   (matched-arxiv-number (match-string 1 link))
+	   (last-arxiv-key "")
+	   (last-arxiv-title ""))
+      (when matched-arxiv-number
+	(message "Going to arXiv: %s" matched-arxiv-number)
+	(arxiv-get-pdf-add-bibtex-entry matched-arxiv-number arxiv_bib arxiv_pdf_loc)
+	;; Now, we are updating the most recent bib file with the pdf location
+	(message "Update bibtex with pdf file location")
+	
+	(save-excursion
+	  ;; Get the bib file
+	  (find-file arxiv_bib)
+	  ;; get to last line
+	  (goto-char (point-max))
+	  ;; get to the first line of bibtex
+	  (bibtex-beginning-of-entry)
+	  (let* ((entry (bibtex-parse-entry))
+		 (key (cdr (assoc "=key=" entry)))
+		 (title (bibtex-completion-apa-get-value "title" entry))
+		 (pdf (org-ref-get-pdf-filename key)))
+	    (message (concat "checking for key: " key))
+	    (message (concat "value of pdf: " pdf))
+	    (when (file-exists-p pdf)
+	      (bibtex-set-field "file" pdf)
+	      (setq last-arxiv-key key)
+	      (setq last-arxiv-title title)
+	      (save-buffer)
+	      )))
+	
+	(save-excursion
+	  (find-file (concat org-directory "papers.org"))
+	  (goto-char (point-max))
+	  (insert (format "** TODO Read paper (cite:%s) %s" last-arxiv-key last-arxiv-title))
+	  (save-buffer))
+	)))
+
+  (global-set-key (kbd "C-c e a") #'my/elfeed-entry-to-arxiv)
+  (global-set-key (kbd "C-c e s") #'elfeed))
 
 (use-package elfeed-score
-  :ensure t
+  
+  :defer t
   :after elfeed
   :hook
   (elfeed-search-mode . elfeed-score-enable)
   :config
   (elfeed-score-load-score-file "~/.emacs.d/elfeed.score")
   (define-key elfeed-search-mode-map "=" elfeed-score-map))
-
-(setq elfeed-feeds '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
-
-(setq elfeed-feeds        '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
-
-(defun concatenate-authors (authors-list)
-  "Given AUTHORS-LIST, list of plists; return string of all authors concatenated."
-  (if (> (length authors-list) 1)
-      (format "%s et al." (plist-get (nth 0 authors-list) :name))
-    (plist-get (nth 0 authors-list) :name)))
-
-(defun my-search-print-fn (entry)
-  "Print ENTRY to the buffer."
-  (let* ((date (elfeed-search-format-date (elfeed-entry-date entry)))
-	 (title (or (elfeed-meta entry :title)
-		    (elfeed-entry-title entry) ""))
-	 (title-faces (elfeed-search--faces (elfeed-entry-tags entry)))
-	 (entry-authors (concatenate-authors
-			 (elfeed-meta entry :authors)))
-	 (title-width (- (window-width) 10
-			 elfeed-search-trailing-width))
-	 (title-column (elfeed-format-column
-			title 100
-			:left))
-	 (entry-score (elfeed-format-column (number-to-string (elfeed-score-scoring-get-score-from-entry entry)) 10 :left))
-          (authors-column (elfeed-format-column entry-authors 40 :left)))
-      (insert (propertize date 'face 'elfeed-search-date-face) " ")
-
-      (insert (propertize title-column
-                          'face title-faces 'kbd-help title) " ")
-      (insert (propertize authors-column
-                          'kbd-help entry-authors) " ")
-      (insert entry-score " ")))
-
-(setq elfeed-search-print-entry-function #'my-search-print-fn)
-(setq elfeed-search-date-format '("%y-%m-%d" 10 :left))
-(setq elfeed-search-title-max-width 110)
-
-(defun my/elfeed-entry-to-arxiv ()
-  (interactive)
-  (let* ((link (elfeed-entry-link elfeed-show-entry))
-	 (match-idx (string-match "arxiv.org/abs/\\([0-9.]*\\)" link))
-         (matched-arxiv-number (match-string 1 link))
-         (last-arxiv-key "")
-         (last-arxiv-title ""))
-    (when matched-arxiv-number
-      (message "Going to arXiv: %s" matched-arxiv-number)
-      (arxiv-get-pdf-add-bibtex-entry matched-arxiv-number arxiv_bib arxiv_pdf_loc)
-      ;; Now, we are updating the most recent bib file with the pdf location
-      (message "Update bibtex with pdf file location")
-
-      (save-excursion
-              ;; Get the bib file
-              (find-file arxiv_bib)
-              ;; get to last line
-              (goto-char (point-max))
-              ;; get to the first line of bibtex
-              (bibtex-beginning-of-entry)
-              (let* ((entry (bibtex-parse-entry))
-                      (key (cdr (assoc "=key=" entry)))
-                      (title (bibtex-completion-apa-get-value "title" entry))
-                      (pdf (org-ref-get-pdf-filename key)))
-                      (message (concat "checking for key: " key))
-                      (message (concat "value of pdf: " pdf))
-                      (when (file-exists-p pdf)
-                      (bibtex-set-field "file" pdf)
-                      (setq last-arxiv-key key)
-                      (setq last-arxiv-title title)
-                      (save-buffer)
-                      )))
-
-      (save-excursion
-        (find-file (concat org-directory "papers.org"))
-        (goto-char (point-max))
-        (insert (format "** TODO Read paper (cite:%s) %s" last-arxiv-key last-arxiv-title))
-        (save-buffer))
-	)))
-
-(setq arxiv_bib "~/org/references.bib")
-(setq arxiv_pdf_loc "~/Documents/papers/arxiv/")
-(setq org-ref-pdf-directory arxiv_pdf_loc)
-
-(setq bibtex-completion-library-path "~/Documents/papers/arxiv/")
-(setq bibtex-completion-bibliography (list arxiv_bib))
-(setq bibtex-completion-pdf-field "file")
-
-(global-set-key (kbd "C-c n a") #'my/elfeed-entry-to-arxiv)
-(global-set-key (kbd "C-c n e") #'elfeed)
 
 (use-package slack
   :bind (("C-c S K" . slack-stop)
@@ -1736,6 +1775,9 @@
 	 (:map slack-message-compose-buffer-mode-map
 	       (("C-c '" . slack-message-send-from-buffer)))
 	 )
+  :hook
+  (emacs-startup . slack-start)
+  :defer t
   :custom
   (slack-extra-subscribed-channels (mapcar 'intern (list "ldi-main" "ldi-graduate" "team-agentic-memory" "ai-server" "help-me" "ml-share" "agentic-memory")))
   (slack-prefer-current-team t)
@@ -1764,14 +1806,14 @@
     (string-trim (nth 1 (split-string message ":")))))
 
 ;; configure alert
-  (defun my/slack-notify (info)
-    (let* ((channel (slack/parse-message-loc (plist-get info :title)))
+(defun my/slack-notify (info)
+  (let* ((channel (slack/parse-message-loc (plist-get info :title)))
     	 (user (slack/parse-sender (plist-get info :message)))
     	 (message (slack/parse-message info))
     	 (pos (org-find-exact-headline-in-buffer channel)))
-      (unless (string-search "주간보고" message)
-        (write-region
-         (s-concat
+    (unless (string-search "주간보고" message)
+      (write-region
+       (s-concat
   	"** UNREAD "
   	(format "<%s> %s : %s"
     		(format-time-string "%Y-%m-%d %H:%M")
@@ -1780,39 +1822,40 @@
   	"\n"
   	(format "%s" message)
   	"\n")
-         nil
-         (concat org-directory "slack.org")
-         t))))
+       nil
+       (concat org-directory "slack.org")
+       t))))
 
-  (use-package alert
-      :ensure t
-      :init
-      (setq alert-default-style 'message)
-      :config
-      (alert-define-style
-       'my/slack-alert
-       :title "org slack alerts"
-       :notifier (lambda (info)
-                   (if (get-buffer "slack.org")
+(use-package alert
+  
+  :init
+  (setq alert-default-style 'message)
+  :config
+  (alert-define-style
+   'my/slack-alert
+   :title "org slack alerts"
+   :notifier (lambda (info)
+               (if (get-buffer "slack.org")
     		   (with-current-buffer "slack.org"
     		     (save-buffer))
     		 (with-current-buffer
     		     (get-buffer-create (find-file (concat org-directory "slack.org")))
     		   (save-buffer)))
     	       (my/slack-notify info)))
-      
-      (add-to-list 'alert-user-configuration
+  
+  (add-to-list 'alert-user-configuration
     	       '(((:category . "slack")) my/slack-alert nil))
-      :hook (org-agenda-mode-hook . (lambda () (local-set-key (kbd "M") 'my/org-agenda-todo-archive))))
+  :hook
+  (org-agenda-mode-hook . (lambda ()
+                            (keymap-local-set "M" 'my/org-agenda-todo-archive))))
 
 (defun my/save-slack ()
   (interactive)
   (save-excursion
-    (do-list (buf '("slack.org_archive" "slack.org"))
-             (set-buffer buf)
-             (if (and (buffer-file-name) (buffer-modified-p))
-                 (basic-save-buffer)))))
-
+    (dolist (buf '("slack.org_archive" "slack.org"))
+      (set-buffer buf)
+      (if (and (buffer-file-name) (buffer-modified-p))
+          (basic-save-buffer)))))
 
 (defun my/org-agenda-todo-archive()
   (interactive)
@@ -1849,7 +1892,6 @@
 (keymap-global-set "C-c S o" #'my/org-to-slack-md)
 
 (use-package projectile
-  :ensure t
   :init
   (setq projectile-project-search-path '((file-truename "~/Documents/research/") (file-truename ("~/Documents/toy-projects/"))))
   :config
@@ -1869,7 +1911,7 @@
   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
 
 (use-package zotra
-  :ensure t
+  :defer t
   :config
   (setq zotra-backend 'zotra-server)
   (setq zotra-local-server-directory (file-truename "~/zotra-server"))
