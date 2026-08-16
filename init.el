@@ -185,8 +185,9 @@
   (vertico-count 20) ;; Show more candidates
   (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
   (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
-  :init
-  (vertico-mode)
+  :bind
+  (:map vertico-map
+         ("/" . #'my/vertico-insert))
   :config
   (defun my/vertico-insert ()
     (interactive)
@@ -195,10 +196,27 @@
       (cond ((string-match-p "^[/~:]" lc) (self-insert-command 1 ?/))
             ((file-directory-p (vertico--candidate)) (vertico-insert))
             (t (self-insert-command 1 ?/)))))
-  
-  :bind
-  (:map vertico-map
-         ("/" . #'my/vertico-insert)))
+
+  (defun down-from-outside ()
+    "Move to next candidate in minibuffer, even when minibuffer isn't selected."
+    (interactive)
+    (with-selected-window (active-minibuffer-window)
+      (execute-kbd-macro [down])))
+
+  (defun up-from-outside ()
+    "Move to previous candidate in minibuffer, even when minibuffer isn't selected."
+    (interactive)
+    (with-selected-window (active-minibuffer-window)
+      (execute-kbd-macro [up])))
+
+  (defun to-and-fro-minibuffer ()
+    "Go back and forth between minibuffer and other window."
+    (interactive)
+    (if (window-minibuffer-p (selected-window))
+        (select-window (minibuffer-selected-window))
+      (select-window (active-minibuffer-window))))
+
+  (vertico-mode 1))
 
 (use-package vertico-directory
   :straight nil
@@ -226,46 +244,16 @@
            (vertico-flat-annotate . t)
            (marginalia-annotators (command marginalia-annotate-binding)))))
 
-  (defun down-from-outside ()
-    "Move to next candidate in minibuffer, even when minibuffer isn't selected."
-    (interactive)
-    (with-selected-window (active-minibuffer-window)
-      (execute-kbd-macro [down])))
-
-  (defun up-from-outside ()
-    "Move to previous candidate in minibuffer, even when minibuffer isn't selected."
-    (interactive)
-    (with-selected-window (active-minibuffer-window)
-      (execute-kbd-macro [up])))
-
-  (defun to-and-fro-minibuffer ()
-    "Go back and forth between minibuffer and other window."
-    (interactive)
-    (if (window-minibuffer-p (selected-window))
-        (select-window (minibuffer-selected-window))
-      (select-window (active-minibuffer-window))))
-
-  (defun +embark-live-vertico ()
-    "Shrink Vertico minibuffer when `embark-live' is active."
-    (when-let (win (and (string-prefix-p "*Embark Live" (buffer-name))
-                        (active-minibuffer-window)))
-      (with-selected-window win
-        (when (and (bound-and-true-p vertico--input)
-                   (fboundp 'vertico-multiform-unobtrusive))
-          (vertico-multiform-unobtrusive)))))
-
   (defun vertico-multiform-buffer-grid ()
     "Toggle displaying Vertico as a grid in a large window (like a regular buffer)."
     (interactive)
     (if (equal '(vertico-buffer-mode vertico-grid-mode) (car vertico-multiform--stack))
         (vertico-multiform-vertical)
       (setcar vertico-multiform--stack '(vertico-buffer-mode vertico-grid-mode))
-      (vertico-multiform--toggle 1)))
-  
-  (add-hook 'embark-collect-mode-hook #'+embark-live-vertico))
+      (vertico-multiform--toggle 1))))
 
 (use-package vertico-posframe
-  :after vertico
+  :after vertico posframe
   :custom
   (vertico-multiform-commands
    '((consult-line
@@ -337,6 +325,7 @@
   :config
   (vertico-multiform-mode 1))
 
+(straight-use-package 'posframe)
 ;; Persist history over Emacs restarts. Vertico sorts by history position.
 (use-package savehist
   :init
@@ -459,7 +448,6 @@
 )
 
 (use-package embark
-  
   :bind
   (("C-." . embark-act)
    ("M-." . embark-dwim)
@@ -470,10 +458,20 @@
   (add-to-list 'display-buffer-alist
                '("\\`\\*Embark Collect\\(Live\\|Completions\\)\\*"
                  nil
-                 (window-parameters (mode-line-format . none)))))
+                 (window-parameters (mode-line-format . none))))
 
-(use-package embark-consult
-  )
+  (defun +embark-live-vertico ()
+    "Shrink Vertico minibuffer when `embark-live' is active."
+    (when-let (win (and (string-prefix-p "*Embark Live" (buffer-name))
+                        (active-minibuffer-window)))
+      (with-selected-window win
+        (when (and (bound-and-true-p vertico--input)
+                   (fboundp 'vertico-multiform-unobtrusive))
+          (vertico-multiform-unobtrusive)))))
+
+  (add-hook 'embark-collect-mode-hook #'+embark-live-vertico))
+
+(straight-use-package 'embark-consult)
 
 (use-package transient
     )
@@ -642,6 +640,8 @@
   (not (display-graphic-p))
   :hook
   (tty-setup . global-kkp-mode))
+
+(straight-use-package 'term)
 
 (use-package popterm
   
@@ -1314,7 +1314,7 @@
 (use-package conda-projectile
   :after conda
   :straight nil)
-  
+
 (use-package anaconda-mode
   :after conda
   :hook
@@ -1323,13 +1323,15 @@
   (python-mode . anaconda-eldoc-mode)
   (python-ts-mode . anaconda-eldoc-mode))
 
- (use-package conda
-   :hook
-   (treemacs-mode . conda-autoactivate-mode)
-   :defer t
-   :config
-   (conda-env-initialize-interactive-shells)
-   (conda-env-initialize-eshell))
+(use-package conda
+  :hook
+  (treemacs-mode . conda-env-autoactivate-mode)
+  :defer t
+  :config
+  (conda-env-initialize-interactive-shells)
+  (conda-env-initialize-eshell)
+
+  (conda-mode-line-setup))
 
 (use-package python
   :defer t
@@ -1486,14 +1488,12 @@
 (use-package treemacs-nerd-icons
   :if (display-graphic-p))
 
-(use-package treemacs-projectile)
+(straight-use-package 'treemacs-projectile)
 
 (use-package treemacs
-  :defer t
   :init
   (if (display-graphic-p)
       (treemacs-load-theme "nerd-icons"))
-
   (keymap-global-set "C-c t o" #'treemacs-select-window)
   (keymap-global-set "C-c t t" #'treemacs)
   :hook

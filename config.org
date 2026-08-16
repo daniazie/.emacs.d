@@ -258,8 +258,9 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
     (vertico-count 20) ;; Show more candidates
     (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
     (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
-    :init
-    (vertico-mode)
+    :bind
+    (:map vertico-map
+           ("/" . #'my/vertico-insert))
     :config
     (defun my/vertico-insert ()
       (interactive)
@@ -268,10 +269,27 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
         (cond ((string-match-p "^[/~:]" lc) (self-insert-command 1 ?/))
               ((file-directory-p (vertico--candidate)) (vertico-insert))
               (t (self-insert-command 1 ?/)))))
-    
-    :bind
-    (:map vertico-map
-           ("/" . #'my/vertico-insert)))
+
+    (defun down-from-outside ()
+      "Move to next candidate in minibuffer, even when minibuffer isn't selected."
+      (interactive)
+      (with-selected-window (active-minibuffer-window)
+        (execute-kbd-macro [down])))
+
+    (defun up-from-outside ()
+      "Move to previous candidate in minibuffer, even when minibuffer isn't selected."
+      (interactive)
+      (with-selected-window (active-minibuffer-window)
+        (execute-kbd-macro [up])))
+
+    (defun to-and-fro-minibuffer ()
+      "Go back and forth between minibuffer and other window."
+      (interactive)
+      (if (window-minibuffer-p (selected-window))
+          (select-window (minibuffer-selected-window))
+        (select-window (active-minibuffer-window))))
+
+    (vertico-mode 1))
 
   (use-package vertico-directory
     :straight nil
@@ -299,46 +317,16 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
              (vertico-flat-annotate . t)
              (marginalia-annotators (command marginalia-annotate-binding)))))
 
-    (defun down-from-outside ()
-      "Move to next candidate in minibuffer, even when minibuffer isn't selected."
-      (interactive)
-      (with-selected-window (active-minibuffer-window)
-        (execute-kbd-macro [down])))
-
-    (defun up-from-outside ()
-      "Move to previous candidate in minibuffer, even when minibuffer isn't selected."
-      (interactive)
-      (with-selected-window (active-minibuffer-window)
-        (execute-kbd-macro [up])))
-
-    (defun to-and-fro-minibuffer ()
-      "Go back and forth between minibuffer and other window."
-      (interactive)
-      (if (window-minibuffer-p (selected-window))
-          (select-window (minibuffer-selected-window))
-        (select-window (active-minibuffer-window))))
-
-    (defun +embark-live-vertico ()
-      "Shrink Vertico minibuffer when `embark-live' is active."
-      (when-let (win (and (string-prefix-p "*Embark Live" (buffer-name))
-                          (active-minibuffer-window)))
-        (with-selected-window win
-          (when (and (bound-and-true-p vertico--input)
-                     (fboundp 'vertico-multiform-unobtrusive))
-            (vertico-multiform-unobtrusive)))))
-
     (defun vertico-multiform-buffer-grid ()
       "Toggle displaying Vertico as a grid in a large window (like a regular buffer)."
       (interactive)
       (if (equal '(vertico-buffer-mode vertico-grid-mode) (car vertico-multiform--stack))
           (vertico-multiform-vertical)
         (setcar vertico-multiform--stack '(vertico-buffer-mode vertico-grid-mode))
-        (vertico-multiform--toggle 1)))
-    
-    (add-hook 'embark-collect-mode-hook #'+embark-live-vertico))
+        (vertico-multiform--toggle 1))))
 
   (use-package vertico-posframe
-    :after vertico
+    :after vertico posframe
     :custom
     (vertico-multiform-commands
      '((consult-line
@@ -410,6 +398,7 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
     :config
     (vertico-multiform-mode 1))
 
+  (straight-use-package 'posframe)
   ;; Persist history over Emacs restarts. Vertico sorts by history position.
   (use-package savehist
     :init
@@ -545,7 +534,6 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
 *** embark
 #+begin_src emacs-lisp 
   (use-package embark
-    
     :bind
     (("C-." . embark-act)
      ("M-." . embark-dwim)
@@ -556,10 +544,20 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
     (add-to-list 'display-buffer-alist
                  '("\\`\\*Embark Collect\\(Live\\|Completions\\)\\*"
                    nil
-                   (window-parameters (mode-line-format . none)))))
+                   (window-parameters (mode-line-format . none))))
 
-  (use-package embark-consult
-    )
+    (defun +embark-live-vertico ()
+      "Shrink Vertico minibuffer when `embark-live' is active."
+      (when-let (win (and (string-prefix-p "*Embark Live" (buffer-name))
+                          (active-minibuffer-window)))
+        (with-selected-window win
+          (when (and (bound-and-true-p vertico--input)
+                     (fboundp 'vertico-multiform-unobtrusive))
+            (vertico-multiform-unobtrusive)))))
+
+    (add-hook 'embark-collect-mode-hook #'+embark-live-vertico))
+
+  (straight-use-package 'embark-consult)
 #+end_src
 *** transient
 we'll also throw in transient
@@ -763,6 +761,8 @@ then, we enable the kitty keyboard protocol (kkp) support.
 ** terminal configuration
 as in, terminal in emacs, not emacs in the terminal
 #+begin_src emacs-lisp
+  (straight-use-package 'term)
+
   (use-package popterm
     
     :if (display-graphic-p) ;; I only want to use popterm if I'm using the GUI version.
@@ -1472,6 +1472,7 @@ because literate programming.
 ** emacs as an ide
 first, we configure the programming languages we want to use. I primarily use python but sometimes I use docker as well.
 
+*** tree-sitter
 the most important thing is tree-sitter.
 #+begin_src emacs-lisp
   (use-package treesit-auto
@@ -1520,25 +1521,27 @@ the most important thing is tree-sitter.
 *** python
 I use mamba as my primary python environment.
 #+begin_src emacs-lisp 
-    (use-package conda-projectile
-      :after conda
-      :straight nil)
-      
-    (use-package anaconda-mode
-      :after conda
-      :hook
-      (python-mode . anaconda-mode)
-      (python-ts-mode . anaconda-mode)
-      (python-mode . anaconda-eldoc-mode)
-      (python-ts-mode . anaconda-eldoc-mode))
+  (use-package conda-projectile
+    :after conda
+    :straight nil)
 
-     (use-package conda
-       :hook
-       (treemacs-mode . conda-autoactivate-mode)
-       :defer t
-       :config
-       (conda-env-initialize-interactive-shells)
-       (conda-env-initialize-eshell))
+  (use-package anaconda-mode
+    :after conda
+    :hook
+    (python-mode . anaconda-mode)
+    (python-ts-mode . anaconda-mode)
+    (python-mode . anaconda-eldoc-mode)
+    (python-ts-mode . anaconda-eldoc-mode))
+
+  (use-package conda
+    :hook
+    (treemacs-mode . conda-env-autoactivate-mode)
+    :defer t
+    :config
+    (conda-env-initialize-interactive-shells)
+    (conda-env-initialize-eshell)
+
+    (conda-mode-line-setup))
 #+end_src
 
 then we configure emacs' python-mode.
@@ -1701,7 +1704,7 @@ I use lsp-mode for lsp
     :after consult lsp-mode)
 #+end_src
 
-*** misc-ish
+*** TODO misc-ish
 meow pt. 2?
 #+begin_src emacs-lisp
   (use-package meow-tree-sitter
@@ -1719,14 +1722,12 @@ then we configure treemacs.
   (use-package treemacs-nerd-icons
     :if (display-graphic-p))
 
-  (use-package treemacs-projectile)
+  (straight-use-package 'treemacs-projectile)
 
   (use-package treemacs
-    :defer t
     :init
     (if (display-graphic-p)
         (treemacs-load-theme "nerd-icons"))
-
     (keymap-global-set "C-c t o" #'treemacs-select-window)
     (keymap-global-set "C-c t t" #'treemacs)
     :hook
