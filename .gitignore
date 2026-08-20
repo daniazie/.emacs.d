@@ -3,9 +3,13 @@
 .org-generic-id-locations
 *.el~
 straight/
+elpaca/
+etc/
+auto-save-list/
 eln-cache/
 data/
 elpa/
 tree-sitter/
 var/
 config.el
+tramp

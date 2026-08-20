@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: load-hf-model
+# key: <hf-model
+# --
+
+model = AutoModelForCausalLM("${1:model}", dtype=torch.bfloat16, quantization_config=quantization_config)

@@ -1,0 +1,6 @@
+# key: #+emacs
+# name: my/emacs-lisp
+# --
+#+begin_src emacs-lisp
+$0
+#+end_src

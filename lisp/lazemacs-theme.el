@@ -15,85 +15,25 @@
 (setq custom-file (make-temp-file "emacs-custom-"))
 (profiler-start 'cpu+mem)
 
-(defvar elpaca-installer-version 0.12)
-(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
-(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-(defvar elpaca-sources-directory (expand-file-name "sources/" elpaca-directory))
-(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-                              :ref nil :depth 1 :inherit ignore
-                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-                              :build (:not elpaca-activate)))
-(let* ((repo  (expand-file-name "elpaca/" elpaca-sources-directory))
-       (build (expand-file-name "elpaca/" elpaca-builds-directory))
-       (order (cdr elpaca-order))
-       (default-directory repo))
-  (add-to-list 'load-path (if (file-exists-p build) build repo))
-  (unless (file-exists-p repo)
-    (make-directory repo t)
-    (when (<= emacs-major-version 28) (require 'subr-x))
-    (condition-case-unless-debug err
-        (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-                  ((zerop (apply #'call-process
-                                 `("git" nil ,buffer t "clone"
-                                   ,@(when-let* ((depth (plist-get order :depth)))
-                                       (list (format "--depth=%d" depth)
-                                             "--no-single-branch"))
-                                   ,(plist-get order :repo) ,repo))))
-                  ((zerop (call-process "git" nil buffer t "checkout"
-                                        (or (plist-get order :ref) "--"))))
-                  (emacs (concat invocation-directory invocation-name))
-                  ((zerop
-                    (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-                                  "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-                  ((require 'elpaca))
-                  ((elpaca-generate-autoloads "elpaca" repo)))
-            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
-          (error "%s" (with-current-buffer buffer (buffer-string))))
-      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
-  (unless (require 'elpaca-autoloads nil t)
-    (require 'elpaca)
-    (elpaca-generate-autoloads "elpaca" repo)
-    (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
-(add-hook 'after-init-hook #'elpaca-process-queues)
-(elpaca `(,@elpaca-order))
-    
-(elpaca elpaca-use-package
-  ;; Enable use-package :ensure support for Elpaca.
-  (elpaca-use-package-mode))
+(add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
-(use-package no-littering
-  :ensure t
-  :demand t
-  :config
-  (setq no-littering-etc-directory
-	  (expand-file-name "config/" user-emacs-directory))
-  (setq no-littering-var-directory
-	  (expand-file-name "data/" user-emacs-directory))
-  (let ((dir (no-littering-expand-var-file-name "lock-files/")))
-    (make-directory dir t)
-    (setq lock-file-name-transforms `((".*" ,dir t)))))
-
-(use-package gcmh
-  :ensure t
-  :defer t
-  :hook
-  (elpaca-after-init . gcmh-mode))
-
-(use-package compile-angel
-  :ensure t
-  :defer t
-  :hook
-  (elpaca-after-init . (lambda () (compile-angel-on-load-mode 1)))
-  :config
-  (setq compile-angel-verbose t)
-  (push "/init.el" compile-angel-excluded-path-suffixes)
-  (push "/early-init.el" compile-angel-excluded-path-suffixes))
-
-(use-package alert
-  :ensure (:wait t)
-  :defer t
-  :init
-  (setq alert-default-style 'message))
+(require 'lazemacs-core)
+(require 'lazemacs-comp)
+(require 'lazemacs-prelude)
+(require 'lazemacs-style)
+(require 'lazemacs-buffers)
+(require 'lazemacs-completion)
+(require 'lazemacs-terminal)
+(require 'lazemacs-keybinds)
+(require 'lazemacs-help)
+(require 'lazemacs-windows)
+(require 'lazemacs-secrets)
+(require 'lazemacs-projects)
+(require 'lazemacs-ide)
+(require 'lazemacs-org)
+(require 'lazemacs-bib)
+(require 'lazemacs-misc)
+(require 'lazemacs-theme)
 
 (use-package emacs
   :ensure nil
@@ -108,10 +48,6 @@
   ;; ;; 2. aesthetics
   (set-face-attribute 'default nil :font "D2KodingLigatureNerdFont" :height 110)
   (set-fontset-font t 'hangul "Hahmlet") ;; D2Koding is also actually a font for the Korean language but I like how Hahmlet looks more w.r.t. the Korean alphabet
-
-  (set-language-environment "Korean")
-  (prefer-coding-system 'utf-8-emacs)
-  (setq default-korean-keyboard "")
   
   (global-display-line-numbers-mode 1) ;; I want my line numbers displayed too
   (context-menu-mode t)
@@ -122,7 +58,6 @@
   (keymap-global-set "C-x 4 s" #'window-swap-states) ;; I also want to be able to swap window states with a keybind
   (keymap-global-set "C-x 5 n" #'make-frame) ;; And I want to be able make a new frame with just the scratch buffer
 
-  (setopt use-short-answers t) ;; I cannot be bothered to type yes/no in full every time
   (add-hook 'dired-mode #'dired-omit-mode) ;; I don't need to see all the .*~ files when I open up dired
 
   (add-to-list 'safe-local-variable-directories
@@ -170,90 +105,6 @@
   (setq meow-current-input-method current-input-method))
  
 (keymap-global-set "<Hangul>" #'my/toggle-korean-input-method)
-
-(use-package doom-themes
-  :ensure t
-  :defer t
-  :hook
-  (elpaca-after-init . (lambda ()
-                         (load-theme 'doom-gruvbox t))))
-
-(use-package doom-modeline
-  :ensure t
-  :defer t
-  :custom
-  (doom-modeline-irc nil)
-  (doom-modeline-github t)
-  (doom-modeline-project-name t)
-  (doom-modeline-battery nil)
-  :hook
-  (elpaca-after-init . doom-modeline-mode))
-
-(use-package nerd-icons
-  :ensure t
-  :demand t)
-
-(use-package nerd-icons-dired
-  :ensure t
-  :hook
-  (dired-mode . nerd-icons-dired-mode))
-
-(use-package nerd-icons-ibuffer
-  :ensure t
-  :hook
-  (ibuffer-mode . nerd-icons-ibuffer-mode))
-
-(use-package dired-subtree
-  :ensure t
-  :defer t
-  :commands
-  (dired-subtree-toggle dired-subtree-cycle)
-  :custom
-  (dired-subtree-line-prefix " ")
-  (dired-subtree-use-backgrounds nil))
-
-(use-package dired-sidebar
-  :ensure t
-  :defer t
-  :bind
-  (("C-x C-n" . dired-sidebar-toggle-sidebar))
-  :commands
-  (dired-sidebar-toggle-sidebar)
-  :hook
-  (dired-sidebar-mode . dired-omit-mode)
-  :custom
-  (dired-sidebar-subtree-line-prefix "__")
-  (dired-sidebar-theme 'nerd-icons)
-  (dired-sidebar-use-term-integration t)
-  (dired-sidebar-use-custom-font t)
-  (dired-sidebar-no-delete-other-windows t))
-
-(use-package ibuffer
-  :ensure nil
-  :defer t
-  :bind
-  ("C-x C-b" . ibuffer))
-
-(when (memq window-system '(mac ns x))
-  (use-package exec-path-from-shell
-    :ensure t
-    :defer t
-    :hook
-    (elpaca-after-init . exec-path-from-shell-initialize)))
-
-(use-package posframe
-  :ensure t
-  :demand t)
-
-(use-package which-key
-  :ensure t t
-  :defer t
-  :hook
-  (elpaca-after-init . which-key-mode)
-  :custom
-  (which-key-popup-type 'side-window)
-  :config
-  (which-key-setup-side-window-right-bottom))
 
 ;; Enable Vertico.
 (use-package vertico
@@ -713,100 +564,6 @@
   :hook
   (vertico-mode . vertico-prescient-mode))
 
-(use-package recentf
-  :ensure nil
-  :defer t
-  :after no-littering
-  :hook
-  (elpaca-after-init . recentf-mode)
-  :config
-  (add-to-list 'recentf-exclude
-               (recentf-expand-file-name no-littering-var-directory))
-  (add-to-list 'recentf-exclude
-               (recentf-expand-file-name no-littering-etc-directory)))
-
-(use-package elscreen
-  :ensure t    
-  :defer t
-  :hook
-  (elpaca-after-init . elscreen-start))
-
-(use-package buffer-guardian
-  :ensure t
-  :defer t
-  :custom
-  ;; When non-nil, include remote files in the auto-save process
-  (buffer-guardian-inhibit-saving-remote-files t)
-  
-  ;; When non-nil, buffers visiting nonexistent files are not saved
-  (buffer-guardian-inhibit-saving-nonexistent-files t)
-  
-  ;; Save the buffer even if the window change results in the same buffer
-  (buffer-guardian-save-on-same-buffer-window-change t)
-  
-  ;; Non-nil to enable verbose mode to log when a buffer is automatically saved
-  (buffer-guardian-verbose nil)
-  
-  ;; Pre-save all package-managed buffers before native save commands run
-  ;; Advise `save-some-buffers' to use `buffer-guardian' logic.
-  ;; When non-nil and `buffer-guardian-mode' is active, this intercepts
-  ;; `save-some-buffers' to silently pre-save package-managed buffers before
-  ;; allowing the native command to run normally.
-  (buffer-guardian-override-save-some-buffers nil)
-  
-  ;; Save all buffers after N seconds of user idle time. (Disabled by default)
-  ;; (buffer-guardian-save-all-buffers-idle 30)
-  
-  ;; Save all buffers every N seconds. (Disabled by default)
-  ;; (buffer-guardian-save-all-buffers-interval (* 60 30))
-  
-  :hook
-  (elpaca-after-init . buffer-guardian-mode))
-
-(use-package bufferfile
-  :ensure t
-  :defer t
-  :commands
-  (bufferfile-copy
-   bufferfile-rename
-   bufferfile-delete)
-  :custom
-  (bufferfile-verbose nil)
-  (bufferfile-delete-switch-to 'parent-directory))
-
-(use-package clipetty
-  :ensure t    
-  :defer t
-  :if
-  (not (display-graphic-p))
-  :hook
-  (elpaca-after-init . global-clipetty-mode))
-
-(use-package kkp
-  :ensure t
-  :defer t
-  :if
-  (not (display-graphic-p))
-  :hook
-  (tty-setup . global-kkp-mode))
-
-(use-package term
-  :ensure nil
-  :demand t)
-
-(use-package popterm
-  :defer t
-  :ensure t    
-  :if (display-graphic-p) ;; I only want to use popterm if I'm using the GUI version.
-  :bind (("C-`"   . popterm-toggle)
-         ("C-~"   . popterm-toggle-cd)
-         ([f9]    . popterm-window-toggle))
-  :custom
-  (popterm-backend 'ghostel)     ; or 'ghostel, 'eat, 'shell, 'eshell
-  (popterm-display-method 'posframe)  ; or 'window, 'fullscreen
-  (popterm-scope 'project)   ; or 'frame, 'dedicated, nil
-  (popterm-auto-cd t))
-
 (defun my/open-config-file ()
   (interactive)
   (get-buffer-create (find-file (expand-file-name "config.org" "~/.emacs.d/"))))
@@ -944,99 +701,6 @@
      '("<escape>" . ignore)))
   (my/meow-qwerty-setup)
   (meow-global-mode 1))
-
-(use-package helpful
-  :ensure t    
-  :defer t
-  :bind
-  ("C-h f" . helpful-callable)
-  ("C-h v" . helpful-variable)
-  ("C-h k" . helpful-key)
-  ("C-h x" . helpful-command)
-
-  ("C-c C-d" . helpful-at-point)
-  ("C-h F" . helpful-function))
-
-(use-package ace-window
-  :ensure t
-  :defer t
-  :hook
-  (elpaca-after-init . ace-window-display-mode)
-  :bind
-  ("M-o" . ace-window)
-  :commands ace-window
-  :custom
-  (aw-background nil)
-  :config
-  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
-  (defvar aw-dispatch-alist
-    '((?x aw-delete-window "Delete Window")
-      (?m aw-swap-window "Swap Windows")
-      (?M aw-move-window "Move Window")
-      (?c aw-copy-window "Copy Window")
-      (?j aw-switch-buffer-in-window "Select Buffer")
-      (?n aw-flip-window)
-      (?u aw-switch-buffer-other-window "Switch Buffer Other Window")
-      (?c aw-split-window-fair "Split Fair Window")
-      (?v aw-split-window-vert "Split Vert Window")
-      (?b aw-split-window-horz "Split Horz Window")
-      (?o delete-other-windows "Delete Other Windows")
-      (?? aw-show-dispatch-help))
-    "List of actions for `aw-dispatch-default'."))
-
-(use-package switchy-window
-  :ensure t
-  :defer t
-  :custom
-  (switchy-window-delay 1.5)
-  :hook
-  (elpaca-after-init . switchy-window-minor-mode)
-  :bind
-  (:map switchy-window-minor-mode-map
-        ("<remap> <other-window>" . switchy-window)))
-
-(use-package plstore
-  :ensure nil
-  :config
-  (add-to-list 'plstore-encrypt-to "dania.moriazi01@khu.ac.kr")
-  :custom
-  (epg-pinentry-mode 'loopback))
-
-(use-package projectile
-  :ensure t
-  :defer t
-  :init
-  (setq projectile-project-search-path '((file-truename "~/Documents/research/") (file-truename ("~/Documents/toy-projects/"))))
-  :hook
-  (treemacs-mode . projectile-mode)
-  :config
-  (setq projectile-completion-system 'default)
-  (setq projectile-sort-order 'recentf)
-  (setq projectile-indexing-method 'alien)
-  (setq projectile-enable-caching t)
-
-  (setq projectile-frecency-file (expand-file-name "projectile-frecency.eld" (file-truename "~/.emacs.d/")))
-  
-  (defun my/projectile-project-find-fn (dir)
-    (when-let ((root (projectile-project-root dir)))
-      (cons 'transient root)))
-  (add-to-list 'project-find-functions #'my/projectile-project-find-fn)
-  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
-
-(use-package golden-ratio
-  :ensure t    
-  :defer t
-  :custom
-  (golden-ratio-auto-scale t)
-  :config
-  (add-to-list 'golden-ratio-exclude-modes 'undo-tree-visualizer-mode)
-  (add-to-list 'golden-ratio-exclude-modes 'helpful-mode)
-  (add-to-list 'golden-ratio-exclude-modes 'prog-mode)
-  (add-to-list 'golden-ratio-exclude-modes 'lsp-mode)
-  (add-to-list 'golden-ratio-exclude-modes 'python-mode)
-  :hook
-  (elpaca-after-init . golden-ratio-mode))
 
 (use-package conda
   :ensure t
@@ -1237,8 +901,7 @@
   (treemacs-mode . treemacs-magit-mode))
 
 (use-package demap
-  :ensure t
-  :defer nil
+  :ensure (:autoloads t)
   :bind
   ("C-c d" . demap-toggle)
   :custom
@@ -1916,179 +1579,6 @@
   :ensure t
   :after projectile)
 
-(use-package citar
-  :ensure t
-  :defer t
-  :custom
-  (citar-bibliography '("~/bib/references.bib"))
-  :hook
-  (LaTeX-mode . citar-capf-setup)
-  (org-mode . citar-capf-setup))
-
-(use-package citar-embark
-  :ensure t :after (citar embark)
-  :defer t
-  :hook
-  (citar-capf-setup . citar-embark-mode))
-
-(use-package arxiv-mode
-  :ensure t
-  :defer t
-  :hook
-  (elfeed-search-mode . arxiv-mode))
-
-(use-package elfeed
-  :ensure t
-  :defer t
-  :hook
-  (elfeed-search-mode . elfeed-update)
-  :init
-  (setq elfeed-search-filter "@2-month-ago +unread")
-  (setq elfeed-feeds '("http://export.arxiv.org/api/query?search_query=cat:cs.CL&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending" "http://export.arxiv.org/api/query?search_query=cat:cs.AI&start=0&max_results=500&sortBy=submittedDate&sortOrder=descending"))
-  (setq arxiv_bib "~/org/references.bib")
-  (setq arxiv_pdf_loc "~/Documents/papers/arxiv/")
-  (setq org-ref-pdf-directory arxiv_pdf_loc)
-  
-  (setq bibtex-completion-library-path "~/Documents/papers/arxiv/")
-  (setq bibtex-completion-bibliography (list arxiv_bib))
-  (setq bibtex-completion-pdf-field "file")
-  :custom
-  (elfeed-search-date-format '("%y-%m-%d" 10 :left))
-  (elfeed-search-title-max-width 110)
-  :config
-  (defun concatenate-authors (authors-list)
-    "Given AUTHORS-LIST, list of plists; return string of all authors concatenated."
-    (if (> (length authors-list) 1)
-	(format "%s et al." (plist-get (nth 0 authors-list) :name))
-      (plist-get (nth 0 authors-list) :name)))
-  
-  (defun my-search-print-fn (entry)
-    "Print ENTRY to the buffer."
-    (let* ((date (elfeed-search-format-date (elfeed-entry-date entry)))
-	   (title (or (elfeed-meta entry :title)
-		      (elfeed-entry-title entry) ""))
-	   (title-faces (elfeed-search--faces (elfeed-entry-tags entry)))
-	   (entry-authors (concatenate-authors
-			   (elfeed-meta entry :authors)))
-	   (title-width (- (window-width) 10
-			   elfeed-search-trailing-width))
-	   (title-column (elfeed-format-column
-			  title 100
-			  :left))
-	   (entry-score
-	    (elfeed-format-column
-	     (number-to-string (elfeed-score-scoring-get-score-from-entry entry)) 10 :left))
-	   (authors-column (elfeed-format-column entry-authors 40 :left)))
-      (insert (propertize date 'face 'elfeed-search-date-face) " ")
-      (insert (propertize title-column
-			  'face title-faces 'kbd-help title) " ")
-      (insert (propertize authors-column
-			  'kbd-help entry-authors) " ")
-      (insert entry-score " ")))
-
-  (setq elfeed-search-print-entry-function #'my-search-print-fn)
-
-  (defun my/elfeed-entry-to-arxiv ()
-    (interactive)
-    (let* ((link (elfeed-entry-link elfeed-show-entry))
-	   (match-idx (string-match "arxiv.org/abs/\\([0-9.]*\\)" link))
-	   (matched-arxiv-number (match-string 1 link))
-	   (last-arxiv-key "")
-	   (last-arxiv-title ""))
-      (when matched-arxiv-number
-	(message "Going to arXiv: %s" matched-arxiv-number)
-	(arxiv-get-pdf-add-bibtex-entry matched-arxiv-number arxiv_bib arxiv_pdf_loc)
-	;; Now, we are updating the most recent bib file with the pdf location
-	(message "Update bibtex with pdf file location")
-	
-	(save-excursion
-	  ;; Get the bib file
-	  (find-file arxiv_bib)
-	  ;; get to last line
-	  (goto-char (point-max))
-	  ;; get to the first line of bibtex
-	  (bibtex-beginning-of-entry)
-	  (let* ((entry (bibtex-parse-entry))
-		 (key (cdr (assoc "=key=" entry)))
-		 (title (bibtex-completion-apa-get-value "title" entry))
-		 (pdf (org-ref-get-pdf-filename key)))
-	    (message (concat "checking for key: " key))
-	    (message (concat "value of pdf: " pdf))
-	    (when (file-exists-p pdf)
-	      (bibtex-set-field "file" pdf)
-	      (setq last-arxiv-key key)
-	      (setq last-arxiv-title title)
-	      (save-buffer)
-	      )))
-	
-	(save-excursion
-	  (find-file (concat org-directory "papers.org"))
-	  (goto-char (point-max))
-	  (insert (format "** TODO Read paper (cite:%s) %s" last-arxiv-key last-arxiv-title))
-	  (save-buffer))
-	)))
-
-  (keymap-global-unset "C-c e")
-  (keymap-global-set "C-c e a" #'my/elfeed-entry-to-arxiv)
-  (keymap-global-set "C-c e s" #'elfeed))
-
-(use-package elfeed-score   
-  :ensure t :after elfeed
-  :defer t
-  :hook
-  (elfeed-search-mode . elfeed-score-enable)
-  :config
-  (elfeed-score-load-score-file "~/.emacs.d/elfeed.score")
-  (define-key elfeed-search-mode-map "=" elfeed-score-map))
-
-(use-package slack
-  :ensure t
-  :after alert
-  :defer t
-  :bind (("C-c S K" . slack-stop)
-	 ("C-c S c" . slack-select-rooms)
-	 ("C-c S u" . slack-select-unread-rooms)
-	 ("C-c S U" . slack-user-select)
-	 ("C-c S s" . slack-search-from-messages)
-	 ("C-c S J" . slack-jump-to-browser)
-	 ("C-c S j" . slack-jump-to-app)
-	 ("C-c S e" . slack-insert-emoji)
-	 ("C-c S E" . slack-message-edit)
-	 ("C-c S r" . slack-message-add-reaction)
-	 ("C-c S t" . slack-thread-show-or-create)
-	 ("C-c S g" . slack-message-redisplay)
-	 ("C-c S G" . slack-conversations-list-update-quick)
-	 ("C-c S q" . slack-quote-and-reply)
-	 ("C-c S Q" . slack-quote-and-reply-with-link)
-	 (:map slack-mode-map
-	       (("@" . slack-message-embed-mention)
-		("#" . slack-message-embed-channel)))
-	 (:map slack-thread-message-buffer-mode-map
-	       (("C-c '" . slack-message-write-another-buffer)
-		("@" . slack-message-embed-mention)
-		("#" . slack-message-embed-channel)))
-	 (:map slack-message-buffer-mode-map
-	       (("C-c '" . slack-message-write-another-buffer)))
-	 (:map slack-message-compose-buffer-mode-map
-	       (("C-c '" . slack-message-send-from-buffer)))
-	 )
-  :hook
-  (elpaca-after-init . slack-start)
-  :custom
-  (slack-extra-subscribed-channels (mapcar 'intern (list "ldi-main" "ldi-graduate" "team-agentic-memory" "ai-server" "help-me" "ml-share" "agentic-memory")))
-  (slack-prefer-current-team t)
-  :config
-  (slack-register-team
-   :name "languagedatakhu"
-   :token (auth-source-pick-first-password
-	   :host "languagedatakhu.slack.com"
-	   :user "dania.moriazi01@khu.ac.kr")
-   :cookie (auth-source-pick-first-password
-	    :host "languagedatakhu.slack.com"
-	    :user "dania.moriazi01@khu.ac.kr^cookie")
-   :full-and-display-names t
-   :default t ))
-
 ;; parse message metadata
 (defun slack/parse-message-loc (title)
   (concat "#" (string-trim (nth 1 (split-string title "#")))))
@@ -2184,25 +1674,6 @@
 (keymap-global-set "C-c S p" #'my/slack-send-message)
 (keymap-global-set "C-c S o" #'my/org-to-slack-md)
 
-(use-package zotra
-  :ensure t
-  :defer t
-  :config
-  (setq zotra-backend 'zotra-server)
-  (setq zotra-local-server-directory (file-truename "~/zotra-server"))
-  (with-eval-after-load "bibtex-completion"
-    (zotra-bibtex-completion))
-  (setq zotra-download-attachment-default-directory bibtex-completion-library-path)
-  (setq zotra-default-bibliography bibtex-completion-bibliography)
-  (add-hook 'zotra-after-get-bibtex-entry-hook 'org-ref-clean-bibtex-entry)
-  
-  (defun zotra-add-entry-and-download-attachment (&optional url)
-    (interactive)
-    (let ((zotra-after-get-bibtex-entry-hook
-	   (append zotra-after-get-bibtex-entry-hook
-		   '(zotra-download-attachment-for-current-entry))))
-      (zotra-add-entry url))))
-
 (defun my/convert-time (&optional DATE TIME ZONE)
   (encode-time
    (parse-time-string
@@ -2267,7 +1738,7 @@
   (my/open-org-agenda)
   (dired-sidebar-toggle-sidebar org-directory)
   (select-window (get-buffer-window dashboard-buffer-name))
-  (add-hook 'treemacs-mode-hook #'my/kill-agenda-window)
+  (add-hook 'demap-minimap-set-window-hook #'my/kill-agenda-window)
   (current-buffer))
 
 (use-package dashboard 
@@ -2290,3 +1761,5 @@
   (dashboard-icon-type 'nerd-icons)
   (dashboard-set-heading-icons t)
   (dashboard-set-file-icons t))
+
+(provide 'lazemacs-theme)

@@ -1,8 +1,10 @@
 #+STARTUP: overview inlineimages
-#+title: dania moriazi's emacs config
+#+title: lazemacs
 #+CREATOR: dania moriazi
 #+LANGUAGE: en
 #+OPTIONS: num:nil
+
+A literate configuration for emacs meant to reduce load times.
 
 Because version control.
 

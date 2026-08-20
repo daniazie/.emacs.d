@@ -1,5 +1,5 @@
 #+STARTUP: overview
-#+TITLE: my emacs config
+#+TITLE: lazemacs
 #+CREATOR: dania moriazi
 #+OPTIONS: num:nil
 
@@ -14,122 +14,199 @@ Following [[gh:protesilaos][protesilaos]]'s configuration, instead of calling =o
 
 * early initialisation
 Here, we write our =early-init.el= configuration. For some reason, emacs still uses legacy behaviour w.r.t the init file, so we're going to have to reset the =user-init-file= variable for convenience's sake
+#+begin_src emacs-lisp :comments no :tangle "early-init.el"
+  ;;; -*- lexical-binding: t; -*-
+#+end_src
+
 #+begin_src emacs-lisp :tangle "early-init.el" :exports code
-  ;;; -*- lexical-binding: t -*-
-
   (setq package-enable-at-startup nil)
+  (setq load-prefer-newer t)
 
+  (setq inhibit-default-init t)
   (setq use-package-enable-imenu-support t)
+
+  ;; make native compilation silent
+  (when (native-comp-available-p)
+    (setq native-comp-async-report-warnings-errors 'silent))
+  (setq bytecomp--inhibit-lexical-cookie-warning t)
+  (setq inhibit-compacting-font-caches t)
+
+  ;; personally, I prefer not to have the menu-, tool- and scroll-bars.
+  (scroll-bar-mode -1)
+  (tool-bar-mode -1)
+  (menu-bar-mode -1)
+  (setq inhibit-startup-message t) ;; I don't need this
+
+  (setq ring-bell-function 'ignore) ;; the ring bell always annoyed me tbh
+  (setq use-file-dialog nil) ;; I want to keep everything in emacs pls
+  (setq use-dialog-box nil)
+
+  (set-language-environment "Korean")
+  (prefer-coding-system 'utf-8-emacs)
+  (setq default-korean-keyboard "")
+
+  (setopt use-short-answers t) ;; I cannot be bothered to type yes/no in full every time
+
+  ;; (setq no-byte-compile t)
+
+  ;; have emacs open in fullscreen by default
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
   (add-hook 'after-init-hook (lambda () (set-frame-name "home")))
 #+end_src
 
-* initialisation
+* init.el
 #+PROPERTY: header-args:emacs-lisp :tangle "init.el" :exports code
 Here, we write our configuration for =init.el=. Our first order of business: custom set variables and garbage collection.
+
+#+begin_src emacs-lisp :comments no
+  ;;; -*- lexical-binding: t; -*-
+#+end_src
+
 #+begin_src emacs-lisp
-  ;;; -*- lexical-binding: t -*-
   (custom-set-variables
    '(org-agenda-files
      '("/home/dania/org/agentic-memory.org" "/home/dania/org/calendar.org"
        "/home/dania/org/daily.org" "/home/dania/org/meeting.org"
        "/home/dania/org/todo.org" "/home/dania/org/slack.org")))
 
+  (let (;; temporarily increase `gc-cons-threshold' when loading to speed up startup.
+      (gc-cons-threshold most-positive-fixnum)
+      ;; Empty to avoid analyzing files when loading remote files.
+      (file-name-handler-alist nil))
+    )
+
+  (setq custom-file (make-temp-file "emacs-custom-"))
   (profiler-start 'cpu+mem)
-  (setq inhibit-compacting-font-caches t)
 
-  (setq gc-cons-threshold most-positive-fixnum
-  	gc-cons-percentage 0.5)
-  (add-hook 'emacs-startup-hook
-  	    (lambda () (setq gc-cons-threshold 800000)))
+  (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
-  (setq read-process-output-max (* 1024 1024))
+  (require 'lazemacs-core)
+  (require 'lazemacs-comp)
+  (require 'lazemacs-prelude)
+  (require 'lazemacs-style)
+  (require 'lazemacs-buffers)
+  (require 'lazemacs-completion)
+  (require 'lazemacs-terminal)
+  (require 'lazemacs-keybinds)
+  (require 'lazemacs-help)
+  (require 'lazemacs-windows)
+  (require 'lazemacs-secrets)
+  (require 'lazemacs-projects)
+  (require 'lazemacs-ide)
+  (require 'lazemacs-org)
+  (require 'lazemacs-bib)
+  (require 'lazemacs-misc)
+  (require 'lazemacs-theme)
 #+end_src
 
-** package archives
-#+begin_src emacs-lisp
-  (defvar bootstrap-version)
-  (let ((bootstrap-file
-	 (expand-file-name
-	  "straight/repos/straight.el/bootstrap.el"
-	  (or (bound-and-true-p straight-base-dir)
-	      user-emacs-directory)))
-	(bootstrap-version 7))
-    (unless (file-exists-p bootstrap-file)
-      (with-current-buffer
-	  (url-retrieve-synchronously
-	   "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-	   'silent 'inhibit-cookies)
-	(goto-char (point-max))
-	(eval-print-last-sexp)))
-    (load bootstrap-file nil 'nomessage))
-
-  (setq straight-use-package-by-default t)
-
-  (require 'use-package)
-  (package-initialize)
-
-  (setq load-prefer-newer t)
+* packages
+#+PROPERTY: header-args:emacs-lisp
+** setup elpaca for package management
+I have since switched from straight to elpaca (because it's much faster).
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
+  (defvar elpaca-installer-version 0.12)
+  (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+  (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+  (defvar elpaca-sources-directory (expand-file-name "sources/" elpaca-directory))
+  (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                                :ref nil :depth 1 :inherit ignore
+                                :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                                :build (:not elpaca-activate)))
+  (let* ((repo  (expand-file-name "elpaca/" elpaca-sources-directory))
+         (build (expand-file-name "elpaca/" elpaca-builds-directory))
+         (order (cdr elpaca-order))
+         (default-directory repo))
+    (add-to-list 'load-path (if (file-exists-p build) build repo))
+    (unless (file-exists-p repo)
+      (make-directory repo t)
+      (when (<= emacs-major-version 28) (require 'subr-x))
+      (condition-case-unless-debug err
+          (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                    ((zerop (apply #'call-process
+                                   `("git" nil ,buffer t "clone"
+                                     ,@(when-let* ((depth (plist-get order :depth)))
+                                         (list (format "--depth=%d" depth)
+                                               "--no-single-branch"))
+                                     ,(plist-get order :repo) ,repo))))
+                    ((zerop (call-process "git" nil buffer t "checkout"
+                                          (or (plist-get order :ref) "--"))))
+                    (emacs (concat invocation-directory invocation-name))
+                    ((zerop
+                      (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                    "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                    ((require 'elpaca))
+                    ((elpaca-generate-autoloads "elpaca" repo)))
+              (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+            (error "%s" (with-current-buffer buffer (buffer-string))))
+        ((error) (warn "%s" err) (delete-directory repo 'recursive))))
+    (unless (require 'elpaca-autoloads nil t)
+      (require 'elpaca)
+      (elpaca-generate-autoloads "elpaca" repo)
+      (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
+  (add-hook 'after-init-hook #'elpaca-process-queues)
+  (elpaca `(,@elpaca-order))
+      
+  (elpaca elpaca-use-package
+    ;; Enable use-package :ensure support for Elpaca.
+    (elpaca-use-package-mode))
 #+end_src
 
 ** no-littering
 we try to keep a litter-free space.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-comp.el"
   (use-package no-littering
+    :ensure t
+    :demand t
     :config
     (setq no-littering-etc-directory
-	  (expand-file-name "config/" user-emacs-directory))
+  	  (expand-file-name "config/" user-emacs-directory))
     (setq no-littering-var-directory
-	  (expand-file-name "data/" user-emacs-directory))
+  	  (expand-file-name "data/" user-emacs-directory))
     (let ((dir (no-littering-expand-var-file-name "lock-files/")))
       (make-directory dir t)
       (setq lock-file-name-transforms `((".*" ,dir t)))))
 #+end_src
 
 ** running gc
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-comp.el"
   (use-package gcmh
+    :ensure t
+    :defer t
     :hook
-    (emacs-startup . gcmh-mode))
+    (elpaca-after-init . gcmh-mode))
 #+end_src
 
 ** compile-angel
 using compile-angel to speed emacs up.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-comp.el"
   (use-package compile-angel
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . (lambda () (compile-angel-on-load-mode 1)))
     :config
     (setq compile-angel-verbose t)
     (push "/init.el" compile-angel-excluded-path-suffixes)
-    (push "/early-init.el" compile-angel-excluded-path-suffixes)
-    (compile-angel-on-load-mode 1))
+    (push "/early-init.el" compile-angel-excluded-path-suffixes))
 #+end_src
 ** emacs configuration
+#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-prelude.el"
 this is where I setup my emacs theme and also some keybindings I use frequently
 #+begin_src emacs-lisp
   (use-package emacs
-    :straight nil
+    :ensure nil
+    :demand t
     :init
-    ;; personally, I prefer not to have the menu-, tool- and scroll-bars.
-    (scroll-bar-mode -1)
-    (tool-bar-mode -1)
-    (menu-bar-mode -1)
-
     ;; I am a habitual delete-by-selection user
-    (delete-selection-mode)
-
+    (delete-selection-mode 1)
     ;; also, I like to have my delimiters matched automatically
     (electric-pair-mode t)
-    (show-paren-mode t)
-    ;; have emacs open in fullscreen by default
-    (add-to-list 'default-frame-alist '(fullscreen . maximized))
-
     ;; setting up fonts because
     ;; ;; 1. the theme I use for some reason fails to properly render certain icons
     ;; ;; 2. aesthetics
     (set-face-attribute 'default nil :font "D2KodingLigatureNerdFont" :height 110)
     (set-fontset-font t 'hangul "Hahmlet") ;; D2Koding is also actually a font for the Korean language but I like how Hahmlet looks more w.r.t. the Korean alphabet
-
-    (set-language-environment-nonascii-translation 'Korean) ;; emacs once got real finnicky with the Korean alphabet and after fixing it, I said never again and added this.
-
+    
     (global-display-line-numbers-mode 1) ;; I want my line numbers displayed too
     (context-menu-mode t)
     (setq treesit-auto-install-grammar 'ask)
@@ -139,9 +216,11 @@ this is where I setup my emacs theme and also some keybindings I use frequently
     (keymap-global-set "C-x 4 s" #'window-swap-states) ;; I also want to be able to swap window states with a keybind
     (keymap-global-set "C-x 5 n" #'make-frame) ;; And I want to be able make a new frame with just the scratch buffer
 
-    (setopt use-short-answers t) ;; I cannot be bothered to type yes/no in full every time
     (add-hook 'dired-mode #'dired-omit-mode) ;; I don't need to see all the .*~ files when I open up dired
 
+    (add-to-list 'safe-local-variable-directories
+                 (file-truename "~/Documents/research/agentic-memory/"))
+    
     :custom
     (enable-recursive-minibuffers t)
     (read-extended-command-predicate #'command-completion-default-include-p)
@@ -156,44 +235,95 @@ this is where I setup my emacs theme and also some keybindings I use frequently
 
     (completion-cycling t) ;; when using completion-at-point, cycle through options
     (display-line-numbers-type 'relative) ;; I discovered relative line numbers and never looked back
-
-    (inhibit-startup-message t) ;; I don't need this
-
+    
     (global-visual-line-mode t) ;; word wrapping
-    (use-file-dialog nil) ;; I want to keep everything in emacs pls
-    (use-dialog-box nil)
-    (org-startup-folded t) ;; a more compact display
-    (ring-bell-function 'ignore)) ;; the ring bell always annoyed me tbh
+    (if (not (server-running-p))
+        (start-server)))  
 #+end_src
 *** inhibit mouse
 I'm trying to get in the habit of exclusively using my keyboard
 #+begin_src emacs-lisp
   (use-package inhibit-mouse
-    :config
-    (inhibit-mouse-mode))
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . inhibit-mouse-mode))
+#+end_src
+
+*** free-keys
+#+begin_src emacs-lisp
+  (use-package free-keys
+    :ensure t
+    :defer t
+    :commands free-keys
+    :bind
+    ("M-F" . free-keys))
+#+end_src
+*** multilingual input
+I personally like to keep my =toggle-input-method= keybinding the same as the system setting (which, out of habit, I had it configured to =s-<space>=)
+#+begin_src emacs-lisp
+  (keymap-global-unset "S-SPC")
+  (keymap-global-set "s-SPC" #'toggle-input-method)
+
+  (defvar meow-current-input-method current-input-method)
+  (defun my/toggle-korean-input-method ()
+    (interactive)
+    (toggle-korean-input-method)
+    (setq meow-current-input-method current-input-method))
+   
+  (keymap-global-set "<Hangul>" #'my/toggle-korean-input-method)
+#+end_src
+
+** alert
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-prelude.el"
+  (use-package alert
+    :ensure (:wait t)
+    :defer t
+    :init
+    (setq alert-default-style 'message))
 #+end_src
 ** theme
 I use doom-themes and doom-modeline
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-style.el"
   (use-package doom-themes
+    :ensure t
     :defer t
-    :init
-    (load-theme 'doom-gruvbox t))
+    :hook
+    (elpaca-after-init . (lambda ()
+                           (load-theme 'doom-gruvbox t))))
 
   (use-package doom-modeline
+    :ensure t
+    :defer t
     :custom
     (doom-modeline-irc nil)
     (doom-modeline-github t)
     (doom-modeline-project-name t)
     (doom-modeline-battery nil)
-    :init
-    (doom-modeline-mode 1))
+    :hook
+    (elpaca-after-init . doom-modeline-mode))
+
+  (use-package nerd-icons
+    :ensure t
+    :demand t)
+
+  (use-package nerd-icons-dired
+    :ensure t
+    :hook
+    (dired-mode . nerd-icons-dired-mode))
+
+  (use-package nerd-icons-ibuffer
+    :ensure t
+    :hook
+    (ibuffer-mode . nerd-icons-ibuffer-mode))
 #+end_src
 
 ** dired-sidebar
 I like to have a sidebar for my directories for simplicity's sake.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-prelude.el"
   (use-package dired-subtree
+    :ensure t
+    :defer t
     :commands
     (dired-subtree-toggle dired-subtree-cycle)
     :custom
@@ -201,6 +331,8 @@ I like to have a sidebar for my directories for simplicity's sake.
     (dired-subtree-use-backgrounds nil))
 
   (use-package dired-sidebar
+    :ensure t
+    :defer t
     :bind
     (("C-x C-n" . dired-sidebar-toggle-sidebar))
     :commands
@@ -217,46 +349,59 @@ I like to have a sidebar for my directories for simplicity's sake.
 
 ** ibuffer
 ibuffer is much more convenient than the built-in list-buffers
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-buffers.el"
   (use-package ibuffer
+    :ensure nil
+    :defer t
     :bind
     ("C-x C-b" . ibuffer))
 #+end_src
 
 ** shell
 I want emacs to detect my shell paths
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-prelude.el"
   (when (memq window-system '(mac ns x))
     (use-package exec-path-from-shell
-      :config
-      (exec-path-from-shell-initialize)))
+      :ensure t
+      :defer t
+      :hook
+      (elpaca-after-init . exec-path-from-shell-initialize)))
 #+end_src
 
 ** configure which-key
 I don't think I would've lasted as long as I have if it were not for which-key
-#+begin_src emacs-lisp
-  (straight-use-package 'posframe)
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
+  (use-package posframe
+    :ensure t
+    :demand t)
+
   (use-package which-key
+    :ensure t t
+    :defer t
+    :hook
+    (elpaca-after-init . which-key-mode)
     :custom
     (which-key-popup-type 'side-window)
     :config
-    (which-key-setup-side-window-right-bottom)
-    (which-key-mode))
+    (which-key-setup-side-window-right-bottom))
 #+end_src
 
 ** vertico, consult, orderless, marginalia, and embark
+#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-completion.el"
 emacs' holy trinity (vertico, orderless, marginalia) plus two
 *** vertico
 #+begin_src emacs-lisp
   ;; Enable Vertico.
   (use-package vertico
+    :ensure t
+    :defer t
     :custom
     (vertico-scroll-margin 0) ;; Different scroll margin
     (vertico-count 20) ;; Show more candidates
     (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
     (vertico-cycle t) ;; Enable cycling for `vertico-next/previous'
-    :init
-    (vertico-mode)
+    :hook
+    (elpaca-after-init . vertico-mode)
     :config
     (defun my/vertico-insert ()
       (interactive)
@@ -306,15 +451,15 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
           ("/" . #'my/vertico-insert)))
 
   (use-package vertico-buffer
-    :straight nil
+    :ensure nil
     :after vertico)
 
   (use-package vertico-grid
-    :straight nil
+    :ensure nil
     :after vertico)
 
   (use-package vertico-multiform
-    :straight nil
+    :ensure nil
     :after vertico
     :init
     (defun vertico-multiform-buffer-grid ()
@@ -329,7 +474,7 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
     (:map vertico-multiform-map ("M-H" . vertico-multiform-buffer-grid)))
 
   (use-package vertico-directory
-    :straight nil
+    :ensure nil
     :after vertico
     ;; More convenient directory navigation commands
     :bind (:map vertico-map
@@ -338,91 +483,103 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
                 ("M-DEL" . vertico-directory-delete-word))
     ;; Tidy shadowed file names
     :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
+#+end_src
 
-  (use-package vertico-posframe
-    :after vertico
-    :custom
-    (vertico-multiform-commands
-     '((consult-line
-        posframe
-        (vertico-posframe-poshandler . posframe-poshandler-frame-center)
-        (vertico-posframe-border-width . 10)
-        ;; NOTE: This is useful when emacs is used in both in X and
-        ;; terminal, for posframe do not work well in terminal, so
-        ;; vertico-buffer-mode will be used as fallback at the
-        ;; moment.
-        (vertico-posframe-fallback-mode . vertico-buffer-mode))
-       (consult-ripgrep
-        posframe
-        (vertico-posframe-poshandler . posframe-poshandler-frame-center)
-        (vertico-posframe-border-width . 10)
-        ;; NOTE: This is useful when emacs is used in both in X and
-        ;; terminal, for posframe do not work well in terminal, so
-        ;; vertico-buffer-mode will be used as fallback at the
-        ;; moment.
-        (vertico-posframe-fallback-mode . vertico-buffer-mode))
-       (consult-locate
-        posframe
-        (vertico-posframe-poshandler . posframe-poshandler-frame-center)
-        (vertico-posframe-border-width . 10)
-        ;; NOTE: This is useful when emacs is used in both in X and
-        ;; terminal, for posframe do not work well in terminal, so
-        ;; vertico-buffer-mode will be used as fallback at the
-        ;; moment.
-        (vertico-posframe-fallback-mode . vertico-buffer-mode))
-       (consult-find
-        posframe
-        (vertico-posframe-poshandler . posframe-poshandler-point-bottom-center)
-        (vertico-posframe-border-width . 10)
-        ;; NOTE: This is useful when emacs is used in both in X and
-        ;; terminal, for posframe do not work well in terminal, so
-        ;; vertico-buffer-mode will be used as fallback at the
-        ;; moment.
-        (vertico-posframe-fallback-mode . vertico-buffer-mode))
-       (consult-grep
-        posframe
-        (vertico-posframe-poshandler . posframe-poshandler-frame-center)
-        (vertico-posframe-border-width . 10)
-        ;; NOTE: This is useful when emacs is used in both in X and
-        ;; terminal, for posframe do not work well in terminal, so
-        ;; vertico-buffer-mode will be used as fallback at the
-        ;; moment.
-        (vertico-posframe-fallback-mode . vertico-buffer-mode))
-       (consult-git-grep
-        posframe
-        (vertico-posframe-poshandler . posframe-poshandler-frame-center)
-        (vertico-posframe-border-width . 10)
-        ;; NOTE: This is useful when emacs is used in both in X and
-        ;; terminal, for posframe do not work well in terminal, so
-        ;; vertico-buffer-mode will be used as fallback at the
-        ;; moment.
-        (vertico-posframe-fallback-mode . vertico-buffer-mode))
-       (consult-line-multi
-        posframe
-        (vertico-posframe-poshandler . posframe-poshandler-frame-center)
-        (vertico-posframe-border-width . 10)
-        ;; NOTE: This is useful when emacs is used in both in X and
-        ;; terminal, for posframe do not work well in terminal, so
-        ;; vertico-buffer-mode will be used as fallback at the
-        ;; moment.
-        (vertico-posframe-fallback-mode . vertico-buffer-mode))
-       (t posframe
-          (vertico-posframe-poshandler . posframe-poshandler-frame-bottom-center)
-          (vertico-posframe-fallback-mode . vertico-mode))))
+I also use vertico-posframe (mostly for the aesthetics)
+#+begin_src emacs-lisp
+    (use-package vertico-posframe
+      :ensure t
+      :after (vertico posframe)
+      :defer t
+      :hook
+      ((elpaca-after-init-hook vertico-mode) . vertico-multiform-mode)
+      :custom
+      (vertico-multiform-commands
+       '((consult-line
+          posframe
+          (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+          (vertico-posframe-border-width . 10)
+          ;; NOTE: This is useful when emacs is used in both in X and
+          ;; terminal, for posframe do not work well in terminal, so
+          ;; vertico-buffer-mode will be used as fallback at the
+          ;; moment.
+          (vertico-posframe-fallback-mode . vertico-buffer-mode))
+         (consult-ripgrep
+          posframe
+          (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+          (vertico-posframe-border-width . 10)
+          ;; NOTE: This is useful when emacs is used in both in X and
+          ;; terminal, for posframe do not work well in terminal, so
+          ;; vertico-buffer-mode will be used as fallback at the
+          ;; moment.
+          (vertico-posframe-fallback-mode . vertico-buffer-mode))
+         (consult-locate
+          posframe
+          (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+          (vertico-posframe-border-width . 10)
+          ;; NOTE: This is useful when emacs is used in both in X and
+          ;; terminal, for posframe do not work well in terminal, so
+          ;; vertico-buffer-mode will be used as fallback at the
+          ;; moment.
+          (vertico-posframe-fallback-mode . vertico-buffer-mode))
+         (consult-find
+          posframe
+          (vertico-posframe-poshandler . posframe-poshandler-point-bottom-center)
+          (vertico-posframe-border-width . 10)
+          ;; NOTE: This is useful when emacs is used in both in X and
+          ;; terminal, for posframe do not work well in terminal, so
+          ;; vertico-buffer-mode will be used as fallback at the
+          ;; moment.
+          (vertico-posframe-fallback-mode . vertico-buffer-mode))
+         (consult-grep
+          posframe
+          (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+          (vertico-posframe-border-width . 10)
+          ;; NOTE: This is useful when emacs is used in both in X and
+          ;; terminal, for posframe do not work well in terminal, so
+          ;; vertico-buffer-mode will be used as fallback at the
+          ;; moment.
+          (vertico-posframe-fallback-mode . vertico-buffer-mode))
+         (consult-git-grep
+          posframe
+          (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+          (vertico-posframe-border-width . 10)
+          ;; NOTE: This is useful when emacs is used in both in X and
+          ;; terminal, for posframe do not work well in terminal, so
+          ;; vertico-buffer-mode will be used as fallback at the
+          ;; moment.
+          (vertico-posframe-fallback-mode . vertico-buffer-mode))
+         (consult-line-multi
+          posframe
+          (vertico-posframe-poshandler . posframe-poshandler-frame-center)
+          (vertico-posframe-border-width . 10)
+          ;; NOTE: This is useful when emacs is used in both in X and
+          ;; terminal, for posframe do not work well in terminal, so
+          ;; vertico-buffer-mode will be used as fallback at the
+          ;; moment.
+          (vertico-posframe-fallback-mode . vertico-buffer-mode))
+         (t posframe
+            (vertico-posframe-poshandler . posframe-poshandler-frame-bottom-center)
+            (vertico-posframe-fallback-mode . vertico-mode)))))
+#+end_src
+
+also, savehist-mode to access my recent (and generally more commandly used) commands and completions.
+#+begin_src emacs-lisp
+  ;; Persist history over Emacs restarts. Vertico sorts by history position.
+  (use-package savehist
+    :ensure nil
+    :defer t
+    :hook
+    (elpaca-after-init . savehist-mode)
     :config
-    (vertico-multiform-mode 1))
-  
-    ;; Persist history over Emacs restarts. Vertico sorts by history position.
-    (use-package savehist
-      :init
-      (savehist-mode)
-      :config
-      (setq history-length 15))
+    (setq history-length 15))
 #+end_src
 
 *** orderless
 #+begin_src emacs-lisp 
   (use-package orderless
+    :ensure t
+    :defer t
     :custom
     (completion-styles '(orderless basic))
     (completion-category-overrides '((file (styles partial-completion))))
@@ -430,26 +587,31 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
     (completion-pcm-leading-wildcard t))
 #+end_src
 
-#+RESULTS:
-
 *** marginalia
 #+begin_src emacs-lisp 
   (use-package marginalia
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . marginalia-mode))
+
+  (use-package nerd-icons-completion
+    :ensure t :after (nerd-icons marginalia)
+    :defer t
+    ;; :after marginalia
+    :hook
+    (marginalia-mode . nerd-icons-completion-marginalia-setup)
     :config
-    (marginalia-mode))
+    (nerd-icons-completion-mode))
 #+end_src
 
 *** consult
 #+begin_src emacs-lisp
-    ;; Example configuration for Consult
-  (use-package consult-flycheck
-    
-    :commands
-    consult-flycheck)
-
+  ;; Example configuration for Consult
   (use-package consult
     ;; Replace bindings. Lazily loaded by `use-package'.
-    
+    :ensure t
+    :defer t
     :bind (;; C-c bindings in `mode-specific-map'
            ("C-c M-x" . consult-mode-command)
            ("C-c h" . consult-history)
@@ -547,12 +709,18 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
 *** embark
 #+begin_src emacs-lisp 
   (use-package embark
+    :ensure t
+    :defer t
     :bind
     (("C-." . embark-act)
      ("M-." . embark-dwim)
      ("C-h B" . embark-bindings))
     :init
     (setq prefix-help-command #'embark-prefix-help-command)
+    :hook
+    (eldoc-documentation-functions . embark-eldoc-first-target)
+    :custom
+    (eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
     :config
     (add-to-list 'display-buffer-alist
                  '("\\`\\*Embark Collect\\(Live\\|Completions\\)\\*"
@@ -570,31 +738,40 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
 
     (add-hook 'embark-collect-mode-hook #'+embark-live-vertico))
 
-  (straight-use-package 'embark-consult)
+  (use-package embark-consult
+    :ensure t
+    :defer t
+    :after (embark consult))
 #+end_src
+
 *** transient
 we'll also throw in transient
 #+begin_src emacs-lisp
   (use-package transient
-      )
+    :defer t
+    :ensure t)
 
   (use-package context-transient
-    
-    :defer nil
+    :ensure t
+    :after transient
+    :defer t
     :bind
     ("C-c t SPC" . context-transient)) 
 #+end_src
 
 ** on completion-at-point
+#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-completion.el"
 here we configure cape and corfu (but not in that order)
 *** corfu
 #+begin_src emacs-lisp
   (use-package corfu
-    
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . global-corfu-mode)
+    (global-corfu-mode . corfu-history-mode)
+    (global-corfu-mode . corfu-popupinfo-mode)
     :custom
-    (setq corfu-auto t
-  	corfu-auto-delay 0
-  	corfu-auto-prefix 0)
     (corfu-cycle t)
     (corfu-quit-at-boundary nil)
     (corfu-quit-no-match nil)
@@ -620,302 +797,217 @@ here we configure cape and corfu (but not in that order)
     (keymap-set corfu-map "RET" `( menu-item "" nil :filter
   				 ,(lambda (&optional _)
   				    (and (derived-mode-p 'eshell-mode 'comint-mode)
-  					 #'corfu-send))))
-    (global-corfu-mode)
-    (corfu-history-mode)
-    (corfu-popupinfo-mode))
+  					 #'corfu-send)))))
 
   (use-package corfu-candidate-overlay
-    :demand t
+    :ensure t
     :after corfu
+    :defer t
+    :hook
+    (global-corfu-mode . corfu-candidate-overlay-mode)
     :config
-    (corfu-candidate-overlay-mode 1)
     (keymap-global-set "C-<tab>" 'completion-at-point)
     (keymap-global-set "C-<iso-lefttab>" 'corfu-candidate-overlay-complete-at-point))
 
-  ;; Optionally:
-  (setq nerd-icons-corfu-mapping
-        '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
-  	(boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
-  	;; You can alternatively specify a function to perform the mapping,
-  	;; use this when knowing the exact completion candidate is important.
-  	;; Don't pass `:face' if the function already returns string with the
-  	;; face property, though.
-  	(file :fn nerd-icons-icon-for-file :face font-lock-string-face)
-  	;; ...
-          (t :style "cod" :icon "code" :face font-lock-warning-face)))
-          ;; If you add an entry for t, the library uses that as fallback.
-          ;; The default fallback (when it's not specified) is the ? symbol.
+  (use-package nerd-icons-corfu
+    :ensure t
+    :after corfu
+    :defer t
+    :custom
+    ;; Optionally:
+    (nerd-icons-corfu-mapping
+     '((array :style "cod" :icon "symbol_array" :face font-lock-type-face)
+       (boolean :style "cod" :icon "symbol_boolean" :face font-lock-builtin-face)
+       ;; You can alternatively specify a function to perform the mapping,
+       ;; use this when knowing the exact completion candidate is important.
+       ;; Don't pass `:face' if the function already returns string with the
+       ;; face property, though.
+       (file :fn nerd-icons-icon-for-file :face font-lock-string-face)
+       ;; ...
+       (t :style "cod" :icon "code" :face font-lock-warning-face)))
+    ;; If you add an entry for t, the library uses that as fallback.
+    ;; The default fallback (when it's not specified) is the ? symbol.
 
-  ;; The Custom interface is also supported for tuning the variable above.
+    ;; The Custom interface is also supported for tuning the variable above.
+    :config
+    ;; add hook only after corfu has been loaded
+    (add-hook 'global-corfu-mode (lambda () (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))))
+
+  (use-package corfu-terminal
+    :ensure t
+    :after corfu
+    :defer t
+    :if (or (featurep 'tty-child-frames) (display-graphic-p))
+    :hook
+    (global-corfu-mode . corfu-terminal-mode))
 #+end_src
+
 *** cape
 #+begin_src emacs-lisp
   (use-package cape
-  ;; Bind prefix keymap providing all Cape commands under a mnemonic key.
-  ;; Press C-c p ? to for help.
-  :bind ("C-c p" . cape-prefix-map) ;; Alternative key: M-<tab>, M-p, M-+
-  ;; Alternatively bind Cape commands individually.
-  ;; :bind (("C-c p d" . cape-dabbrev)
-  ;;        ("C-c p h" . cape-history)
-  ;;        ("C-c p f" . cape-file)
-  ;;        ...)
-  :init
-  (add-hook 'completion-at-point-functions #'cape-dabbrev)
-  (add-hook 'completion-at-point-functions #'cape-file)
-  (add-hook 'completion-at-point-functions #'cape-elisp-block)
-  (add-hook 'completion-at-point-functions #'cape-history))
+    :ensure t
+    :defer t
+    ;; Bind prefix keymap providing all Cape commands under a mnemonic key.
+    ;; Press C-c p ? to for help.
+    :bind ("C-c p" . cape-prefix-map) ;; Alternative key: M-<tab>, M-p, M-+
+    ;; Alternatively bind Cape commands individually.
+    ;; :bind (("C-c p d" . cape-dabbrev)
+    ;;        ("C-c p h" . cape-history)
+    ;;        ("C-c p f" . cape-file)
+    ;;        ...)
+    :hook
+    (completion-at-point-functions . cape-dabbrev)
+    (completion-at-point-functions . cape-file)
+    (completion-at-point-functions . cape-elisp-block)
+    (completion-at-point-functions . cape-history))
 #+end_src
 ** prescient
+#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-completion.el"
 #+begin_src emacs-lisp
-  (use-package prescient)
+  (use-package prescient
+    :defer t
+    :ensure t)
 
-  (use-package corfu-prescient)
+  (use-package corfu-prescient
+    :ensure t
+    :after (corfu prescient)
+    :defer t
+    :hook
+    (global-corfu-mode . corfu-prescient-mode))
 
-  (use-package vertico-prescient)
+  (use-package vertico-prescient
+    :ensure t
+    :after (vertico prescient)
+    :defer t
+    :hook
+    (vertico-mode . vertico-prescient-mode))
 #+end_src
+
 ** configuring recent files
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-comp.el"
   (use-package recentf
+    :ensure nil
+    :defer t
+    :after no-littering
+    :hook
+    (elpaca-after-init . recentf-mode)
     :config
     (add-to-list 'recentf-exclude
                  (recentf-expand-file-name no-littering-var-directory))
     (add-to-list 'recentf-exclude
-                 (recentf-expand-file-name no-littering-etc-directory))
-    (recentf-mode t))
+                 (recentf-expand-file-name no-littering-etc-directory)))
 #+end_src
 ** elscreen
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-buffers.el"  
   (use-package elscreen
-    
+    :ensure t    
+    :defer t
     :hook
-    (emacs-startup . elscreen-start))
-#+end_src
-** golden-ratio
-I like to have my working space automatically resized
-#+begin_src emacs-lisp 
-  (use-package golden-ratio
-    
-    :custom
-    (golden-ratio-auto-scale t)
-    :config
-    (add-to-list 'golden-ratio-exclude-modes 'undo-tree-visualizer-mode)
-    (add-to-list 'golden-ratio-exclude-modes 'helpful-mode)
-    (golden-ratio-mode t))
+    (elpaca-after-init . elscreen-start))
 #+end_src
 ** buffer guardian
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-buffers.el"
   (use-package buffer-guardian
-  :custom
-  ;; When non-nil, include remote files in the auto-save process
-  (buffer-guardian-inhibit-saving-remote-files t)
-
-  ;; When non-nil, buffers visiting nonexistent files are not saved
-  (buffer-guardian-inhibit-saving-nonexistent-files t)
-
-  ;; Save the buffer even if the window change results in the same buffer
-  (buffer-guardian-save-on-same-buffer-window-change t)
-
-  ;; Non-nil to enable verbose mode to log when a buffer is automatically saved
-  (buffer-guardian-verbose nil)
-
-  ;; Pre-save all package-managed buffers before native save commands run
-  ;; Advise `save-some-buffers' to use `buffer-guardian' logic.
-  ;; When non-nil and `buffer-guardian-mode' is active, this intercepts
-  ;; `save-some-buffers' to silently pre-save package-managed buffers before
-  ;; allowing the native command to run normally.
-  (buffer-guardian-override-save-some-buffers nil)
-
-  ;; Save all buffers after N seconds of user idle time. (Disabled by default)
-  ;; (buffer-guardian-save-all-buffers-idle 30)
-
-  ;; Save all buffers every N seconds. (Disabled by default)
-  ;; (buffer-guardian-save-all-buffers-interval (* 60 30))
-
-  :init
-  (buffer-guardian-mode 1))
+    :ensure t
+    :defer t
+    :custom
+    ;; When non-nil, include remote files in the auto-save process
+    (buffer-guardian-inhibit-saving-remote-files t)
+    
+    ;; When non-nil, buffers visiting nonexistent files are not saved
+    (buffer-guardian-inhibit-saving-nonexistent-files t)
+    
+    ;; Save the buffer even if the window change results in the same buffer
+    (buffer-guardian-save-on-same-buffer-window-change t)
+    
+    ;; Non-nil to enable verbose mode to log when a buffer is automatically saved
+    (buffer-guardian-verbose nil)
+    
+    ;; Pre-save all package-managed buffers before native save commands run
+    ;; Advise `save-some-buffers' to use `buffer-guardian' logic.
+    ;; When non-nil and `buffer-guardian-mode' is active, this intercepts
+    ;; `save-some-buffers' to silently pre-save package-managed buffers before
+    ;; allowing the native command to run normally.
+    (buffer-guardian-override-save-some-buffers nil)
+    
+    ;; Save all buffers after N seconds of user idle time. (Disabled by default)
+    ;; (buffer-guardian-save-all-buffers-idle 30)
+    
+    ;; Save all buffers every N seconds. (Disabled by default)
+    ;; (buffer-guardian-save-all-buffers-interval (* 60 30))
+    
+    :hook
+    (elpaca-after-init . buffer-guardian-mode))
 #+end_src
+
 ** bufferfile
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-buffers.el" 
   (use-package bufferfile
+    :ensure t
     :defer t
     :commands
     (bufferfile-copy
      bufferfile-rename
      bufferfile-delete)
     :custom
-    (bufferfile-verbose t)
+    (bufferfile-verbose nil)
     (bufferfile-delete-switch-to 'parent-directory))
 #+end_src
+
 ** emacs in the terminal
 sometimes, I like to use emacs as a tui, so we configure as below.
 
 first, we connect emacs' clipboard to the os' clipboard using clipetty
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-terminal.el"
   (use-package clipetty
-    
+    :ensure t    
     :defer t
     :if
     (not (display-graphic-p))
     :hook
-    (after-init . global-clipetty-mode))
+    (elpaca-after-init . global-clipetty-mode))
 #+end_src
 
 then, we enable the kitty keyboard protocol (kkp) support.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-terminal.el"
   (use-package kkp
-    
+    :ensure t
     :defer t
     :if
     (not (display-graphic-p))
     :hook
     (tty-setup . global-kkp-mode))
 #+end_src
+
 ** terminal configuration
 as in, terminal in emacs, not emacs in the terminal
-#+begin_src emacs-lisp
-  (straight-use-package 'term)
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-terminal.el"
+  (use-package term
+    :ensure nil
+    :demand t)
 
   (use-package popterm
-    
-    :if (display-graphic-p) ;; I only want to use popterm if I'm using the GUI version.
     :defer t
+    :ensure t    
+    :if (display-graphic-p) ;; I only want to use popterm if I'm using the GUI version.
     :bind (("C-`"   . popterm-toggle)
            ("C-~"   . popterm-toggle-cd)
            ([f9]    . popterm-window-toggle))
-    :config
-    (setq popterm-backend        'ghostel     ; or 'ghostel, 'eat, 'shell, 'eshell
-          popterm-display-method 'posframe  ; or 'window, 'fullscreen
-          popterm-scope          'project   ; or 'frame, 'dedicated, nil
-          popterm-auto-cd        t))
-#+end_src
-** dashboard + some customisations
-I like to use dashboard with org-agenda. also, I like to sort out my daily tasks in a =daily.org= file.
-
-so first and foremost, because I am chronically lazy, I like my =daily.org= to start up already with the day's entry. that said, I like to configure a time that triggers the start of a new entry.
-#+begin_src emacs-lisp 
-  (defun my/convert-time (&optional DATE TIME ZONE)
-    (encode-time
-     (parse-time-string
-      (format "%sT%s%s" (format-time-string "%Y-%m-%d" DATE) TIME ZONE))))
-
-  (defun my/check-time-is-new-day ()
-    (let ((is_night (time-less-p nil (my/convert-time nil "10:00:00" "+09"))))
-      (if (not (member (format-time-string "%A") '("Saturday" "Sunday")))
-  	(and (not is_night) (time-less-p nil (my/convert-time nil "15:00:00" "+09")))
-        (not is_night))))
-#+end_src
-
-now for our =daily.org=
-#+begin_src emacs-lisp 
-  (defun my/goto-or-create-timestamp-header ()
-    (interactive)
-    (with-current-buffer
-        (set-buffer (current-buffer))
-      (when (my/check-time-is-new-day)
-        (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
-  	     (pos (org-find-exact-headline-in-buffer timestamp)))
-  	(if (not pos)
-  	    (progn (goto-char (buffer-size))
-  		   (org-insert-heading nil nil t)
-  		   (insert timestamp)
-  		   (goto-char (buffer-size))
-  		   (org-capture 0 "d"))
-  	  (goto-char pos))
-  	(save-buffer)))))
-
-  (defun my/open-org-daily ()
-    (interactive)
-    (set-buffer
-     (get-buffer (find-file (concat org-directory "daily.org"))))
-    (when (my/check-time-is-new-day)
-      (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
-  	   (pos (org-find-exact-headline-in-buffer timestamp)))
-        (unless pos (progn
-  		    (goto-char (buffer-size))
-  		    (org-insert-heading nil nil t)
-  		    (insert timestamp)
-  		    (goto-char (buffer-size))
-  		    (org-capture 0 "d")))))
-    (goto-char (buffer-size))
-    (current-buffer))
-
-  (keymap-global-set "C-c f d" #'my/open-org-daily)
-#+end_src
-
-then for org-agenda:
-#+begin_src emacs-lisp 
-  (defun my/open-org-agenda ()
-    (interactive)
-    (split-window-right)
-    (org-agenda nil "n")
-    (current-buffer))
-#+end_src
-
-and then dashboard:
-#+begin_src emacs-lisp
-  (defun my/window-setup ()
-    (interactive)
-    (if (and (fboundp 'server-running-p) 
-             (not (server-running-p)))
-        (server-start))
-    (my/open-org-agenda)
-    (dired-sidebar-toggle-sidebar org-directory)
-    (select-window (get-buffer-window dashboard-buffer-name))
-    (current-buffer))
-
-  (use-package dashboard 
-    
-    :config
-    (add-hook 'dashboard-after-initialize-hook #'my/window-setup)
-    (dashboard-setup-startup-hook)
     :custom
-    (dashboard-banner-logo-title "the dashboard")
-    (dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory))
-    (dashboard-center-content t)
-    (dashbaord-vertically-center-content t)
-    (dashboard-items '((recents . 5)
-                       (bookmarks . 5)
-                       (projects . 5)))
-    (dashboard-navigation-cycle t)
-    (dashboard-display-icons-p t)
-    (dashboard-icon-type 'nerd-icons)
-    (dashboard-set-heading-icons t)
-    (dashboard-set-file-icons t))
-#+end_src
-
-** multilingual input
-did I mention I speak Korean? /s
-
-but actually, I personally like to keep my =toggle-input-method= keybinding the same as the system setting (which, out of habit, I had it configured to =s-<space>=)
-#+begin_src emacs-lisp
-  (use-package reverse-im
-    
-    :custom
-    (reverse-im-input-methods '("korean-hangul"))
-    :config
-    (reverse-im-mode t))
-
-  (defun my/toggle-input-method ()
-    (interactive)
-    (toggle-input-method))
-
-  (defun my/initialise-input-method ()
-    (interactive)
-    (set-input-method 'korean-hangul)
-    (toggle-input-method))
-
-  (keymap-global-set "s-SPC" #'my/toggle-input-method)
-  (add-hook 'emacs-startup-hook #'my/initialise-input-method)
+    (popterm-backend 'ghostel)     ; or 'ghostel, 'eat, 'shell, 'eshell
+    (popterm-display-method 'posframe)  ; or 'window, 'fullscreen
+    (popterm-scope 'project)   ; or 'frame, 'dedicated, nil
+    (popterm-auto-cd t))
 #+end_src
 
 ** keybindings
+#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-keybinds.el"
 I like to be able to pull up this file whenever I need to so first things first:
 #+begin_src emacs-lisp 
   (defun my/open-config-file ()
     (interactive)
     (get-buffer-create (find-file (expand-file-name "config.org" "~/.emacs.d/"))))
-
+  
   (keymap-global-set "C-c f p" #'my/open-config-file)
 #+end_src
 
@@ -932,11 +1024,12 @@ also, more often than not, when I split a window, I also want the new window as 
   (keymap-global-set "C-x 2" #'my/split-window-below)
   (keymap-global-set "C-x 3" #'my/split-window-left)
 #+end_src
-
 *** rsi begone
 first, we configure vertigo
 #+begin_src emacs-lisp
   (use-package vertigo
+    :ensure t
+    :defer t
     :custom
     (vertigo-max-digits 3)
     (vertigo-cut-off 9) 
@@ -945,127 +1038,149 @@ first, we configure vertigo
     (keymap-global-set "M-p" #'vertigo-jump-up)) ;; based on C-p to go to the previous line
 #+end_src
 
-meow ?
-#+begin_src emacs-lisp 
+also, for whatever reason, non-latin utf-8-based input methods don't necessarily translate properly into qwerty, so I use a hack so that I don't have to manually change my input method every time I exit insert mode.
+#+begin_src emacs-lisp
+  (defun my/meow-deactivate-input-method ()
+    (interactive)
+    (when meow-current-input-method
+      (deactivate-input-method)))
+    
+  (defun my/meow-reactivate-input-method ()
+    (interactive)
+    (when meow-current-input-method
+      (activate-input-method meow-current-input-method)))
+#+end_src
+
+#+begin_src emacs-lisp
   (use-package meow
+    :ensure t
+    :demand t
+    :init
+    (defvar meow-input-method nil)
+    :hook
+    (meow-insert-exit . my/meow-deactivate-input-method)
+    (meow-insert-enter . my/meow-reactivate-input-method)
     :custom
     (meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
     :config
-    (meow-motion-define-key
-     '("j" . meow-next)
-     '("k" . meow-prev)
-     '("<escape>" . ignore))
-    (meow-leader-define-key
-     ;; Use SPC (0-9) for digit arguments.
-     '("1" . meow-digit-argument)
-     '("2" . meow-digit-argument)
-     '("3" . meow-digit-argument)
-     '("4" . meow-digit-argument)
-     '("5" . meow-digit-argument)
-     '("6" . meow-digit-argument)
-     '("7" . meow-digit-argument)
-     '("8" . meow-digit-argument)
-     '("9" . meow-digit-argument)
-     '("0" . meow-digit-argument)
-     '("/" . meow-keypad-describe-key)
-     '("." . embark-act)
-     '(";" . embark-dwim)
-     '("?" . meow-cheatsheet)
-     '("a" . beginning-of-line)
-     '("e" . end-of-line)
-     '("j" . vertigo-jump-down)
-     '("k" . vertigo-jump-up)
-     '("l" . recenter-top-bottom))
-    (meow-normal-define-key
-     '("0" . meow-expand-0)
-     '("9" . meow-expand-9)
-     '("8" . meow-expand-8)
-     '("7" . meow-expand-7)
-     '("6" . meow-expand-6)
-     '("5" . meow-expand-5)
-     '("4" . meow-expand-4)
-     '("3" . meow-expand-3)
-     '("2" . meow-expand-2)
-     '("1" . meow-expand-1)
-     '("-" . negative-argument)
-     '(";" . meow-reverse)
-     '("," . meow-inner-of-thing)
-     '("." . meow-bounds-of-thing)
-     '("[" . meow-beginning-of-thing)
-     '("]" . meow-end-of-thing)
-     '("a" . meow-append)
-     '("A" . meow-open-below)
-     '("b" . meow-back-word)
-     '("B" . meow-back-symbol)
-     '("c" . meow-change)
-     '("d" . meow-delete)
-     '("D" . meow-backward-delete)
-     '("e" . meow-next-word)
-     '("E" . meow-next-symbol)
-     '("f" . meow-find)
-     '("g" . meow-cancel-selection)
-     '("G" . meow-grab)
-     '("h" . meow-left)
-     '("H" . meow-left-expand)
-     '("i" . meow-insert)
-     '("I" . meow-open-above)
-     '("j" . meow-next)
-     '("J" . meow-next-expand)
-     '("k" . meow-prev)
-     '("K" . meow-prev-expand)
-     '("l" . meow-right)
-     '("L" . meow-right-expand)
-     '("m" . meow-join)
-     '("n" . meow-search)
-     '("o" . meow-block)
-     '("O" . meow-to-block)
-     '("p" . meow-yank)
-     '("q" . meow-quit)
-     '("Q" . meow-goto-line)
-     '("r" . meow-replace)
-     '("R" . meow-swap-grab)
-     '("s" . meow-kill)
-     '("t" . meow-till)
-     '("u" . meow-undo)
-     '("U" . meow-undo-in-selection)
-     '("v" . meow-visit)
-     '("w" . meow-mark-word)
-     '("W" . meow-mark-symbol)
-     '("x" . meow-line)
-     '("X" . meow-goto-line)
-     '("y" . meow-save)
-     '("Y" . meow-sync-grab)
-     '("z" . meow-pop-selection)
-     '("'" . repeat)
-     '("<escape>" . ignore))
-    (meow-global-mode t))
-
-#+end_src
-
-#+RESULTS:
-: t
+    (defun my/meow-qwerty-setup ()
+      (meow-motion-define-key
+       '("j" . meow-next)
+       '("k" . meow-prev)
+       '("<escape>" . ignore))
+      (meow-leader-define-key
+       ;; Use SPC (0-9) for digit arguments.
+       '("1" . meow-digit-argument)
+       '("2" . meow-digit-argument)
+       '("3" . meow-digit-argument)
+       '("4" . meow-digit-argument)
+       '("5" . meow-digit-argument)
+       '("6" . meow-digit-argument)
+       '("7" . meow-digit-argument)
+       '("8" . meow-digit-argument)
+       '("9" . meow-digit-argument)
+       '("0" . meow-digit-argument)
+       '("/" . meow-keypad-describe-key)
+       '("?" . meow-cheatsheet)
+       '("." . embark-act)
+       '("a" . beginning-of-line)
+       '("e" . end-of-line)
+       '("j" . vertigo-jump-down)
+       '("k" . vertigo-jump-up)
+       '("l" . recenter-top-bottom))
+      (meow-normal-define-key
+       '("0" . meow-expand-0)
+       '("9" . meow-expand-9)
+       '("8" . meow-expand-8)
+       '("7" . meow-expand-7)
+       '("6" . meow-expand-6)
+       '("5" . meow-expand-5)
+       '("4" . meow-expand-4)
+       '("3" . meow-expand-3)
+       '("2" . meow-expand-2)
+       '("1" . meow-expand-1)
+       '("-" . negative-argument)
+       '(";" . meow-reverse)
+       '("," . meow-inner-of-thing)
+       '("." . meow-bounds-of-thing)
+       '("[" . meow-beginning-of-thing)
+       '("]" . meow-end-of-thing)
+       '("a" . meow-append)
+       '("A" . meow-open-below)
+       '("b" . meow-back-word)
+       '("B" . meow-back-symbol)
+       '("c" . meow-change)
+       '("d" . delete-char)
+       '("D" . meow-backward-delete)
+       '("e" . meow-next-word)
+       '("E" . meow-next-symbol)
+       '("f" . meow-find)
+       '("g" . meow-cancel-selection)
+       '("G" . meow-grab)
+       '("h" . meow-left)
+       '("H" . meow-left-expand)
+       '("i" . meow-insert)
+       '("I" . meow-open-above)
+       '("j" . meow-next)
+       '("J" . meow-next-expand)
+       '("k" . meow-prev)
+       '("K" . meow-prev-expand)
+       '("l" . meow-right)
+       '("L" . meow-right-expand)
+       '("m" . meow-join)
+       '("n" . meow-search)
+       '("o" . meow-block)
+       '("O" . meow-to-block)
+       '("p" . meow-yank)
+       '("q" . meow-quit)
+       '("Q" . meow-goto-line)
+       '("r" . meow-replace)
+       '("R" . meow-swap-grab)
+       '("s" . meow-kill)
+       '("t" . meow-till)
+       '("u" . meow-undo)
+       '("U" . meow-undo-in-selection)
+       '("v" . meow-visit)
+       '("w" . meow-mark-word)
+       '("W" . meow-mark-symbol)
+       '("x" . meow-line)
+       '("X" . meow-goto-line)
+       '("y" . meow-save)
+       '("Y" . meow-sync-grab)
+       '("z" . meow-pop-selection)
+       '("'" . repeat)
+       '("<escape>" . ignore)))
+    (my/meow-qwerty-setup)
+    (meow-global-mode 1))
+#+end_src 
 
 ** helpful
 a more helpful reference
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-help.el"
   (use-package helpful
-    
+    :ensure t    
     :defer t
-    :init
-    (keymap-global-set "C-h f" #'helpful-callable)
-    (keymap-global-set "C-h v" #'helpful-variable)
-    (keymap-global-set "C-h k" #'helpful-key)
-    (keymap-global-set "C-h x" #'helpful-command)
+    :bind
+    ("C-h f" . helpful-callable)
+    ("C-h v" . helpful-variable)
+    ("C-h k" . helpful-key)
+    ("C-h x" . helpful-command)
 
-    (keymap-global-set "C-c C-d" #'helpful-at-point)
-    (keymap-global-set "C-h F" #'helpful-function))
+    ("C-c C-d" . helpful-at-point)
+    ("C-h F" . helpful-function))
 #+end_src
 
 ** window management
 I like to use ace-window and switchy-window
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-windows.el"
   (use-package ace-window
-    
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . ace-window-display-mode)
+    :bind
+    ("M-o" . ace-window)
+    :commands ace-window
     :custom
     (aw-background nil)
     :config
@@ -1083,34 +1198,673 @@ I like to use ace-window and switchy-window
         (?b aw-split-window-horz "Split Horz Window")
         (?o delete-other-windows "Delete Other Windows")
         (?? aw-show-dispatch-help))
-      "List of actions for `aw-dispatch-default'.")
-    (ace-window-display-mode)
-    (keymap-global-set "M-o" 'ace-window))
+      "List of actions for `aw-dispatch-default'."))
 
   (use-package switchy-window
-    
+    :ensure t
+    :defer t
     :custom
     (switchy-window-delay 1.5)
+    :hook
+    (elpaca-after-init . switchy-window-minor-mode)
     :bind
     (:map switchy-window-minor-mode-map
-          ("<remap> <other-window>" . switchy-window))
-    :init    
-    (switchy-window-minor-mode))
+          ("<remap> <other-window>" . switchy-window)))
 #+end_src
+
 ** secrets management
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-secrets.el"
   (use-package plstore
+    :ensure nil
     :config
     (add-to-list 'plstore-encrypt-to "dania.moriazi01@khu.ac.kr")
-    (setq epg-pinentry-mode 'loopback))
+    :custom
+    (epg-pinentry-mode 'loopback))
+#+end_src
+
+** projectile
+for better project management
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-projects.el"
+  (use-package projectile
+    :ensure t
+    :defer t
+    :init
+    (setq projectile-project-search-path '((file-truename "~/Documents/research/") (file-truename ("~/Documents/toy-projects/"))))
+    :hook
+    (treemacs-mode . projectile-mode)
+    :config
+    (setq projectile-completion-system 'default)
+    (setq projectile-sort-order 'recentf)
+    (setq projectile-indexing-method 'alien)
+    (setq projectile-enable-caching t)
+
+    (setq projectile-frecency-file (expand-file-name "projectile-frecency.eld" (file-truename "~/.emacs.d/")))
+    
+    (defun my/projectile-project-find-fn (dir)
+      (when-let ((root (projectile-project-root dir)))
+        (cons 'transient root)))
+    (add-to-list 'project-find-functions #'my/projectile-project-find-fn)
+    (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+    (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
+#+end_src
+
+** golden-ratio
+I like to have my working space automatically resized
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-buffers.el"
+  (use-package golden-ratio
+    :ensure t    
+    :defer t
+    :custom
+    (golden-ratio-auto-scale t)
+    :config
+    (add-to-list 'golden-ratio-exclude-modes 'undo-tree-visualizer-mode)
+    (add-to-list 'golden-ratio-exclude-modes 'helpful-mode)
+    (add-to-list 'golden-ratio-exclude-modes 'prog-mode)
+    (add-to-list 'golden-ratio-exclude-modes 'lsp-mode)
+    (add-to-list 'golden-ratio-exclude-modes 'python-mode)
+    :hook
+    (elpaca-after-init . golden-ratio-mode))
+#+end_src
+** emacs as an ide
+#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-ide.el"
+first, we configure the programming languages we want to use. I primarily use python but sometimes I use docker as well.
+*** python
+I use mamba as my primary python environment.
+#+begin_src emacs-lisp 
+  (use-package conda
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . conda-env-autoactivate-mode)
+    :config
+    (conda-env-initialize-interactive-shells)
+    (conda-env-initialize-eshell)
+    (conda-mode-line-setup))
+#+end_src
+
+we configure emacs' python-mode.
+#+begin_src emacs-lisp
+  (use-package python
+    :defer t
+    :ensure (:wait t)
+    :mode
+    (("\\.py\\'" . python-ts-mode)
+     ("\\.pyi\\'" . python-ts-mode)
+     ("\\.pyw\\'" . python-ts-mode))
+    :hook
+    (conda-env-autoactivate-mode . (lambda ()
+                                     (setq python-shell-exec-path conda-env-current-path)))
+    (python-mode . lsp-deferred)
+    (python-ts-mode . lsp-deferred)
+    (python-mode . subword-mode)
+    (python-ts-mode . subword-mode)
+    (python-ts-mode . python-mode)
+    :init
+    (setq python-indent-offset 4)
+    (setq PYTHONPATH (file-truename "~/miniforge3/bin/python"))
+    (setenv "PYTHONPATH" PYTHONPATH)
+    (setq python-shell-interpreter PYTHONPATH)
+    (setq python-interpreter PYTHONPATH)
+    
+    (defun my/python-setup ()
+      (define-derived-mode python-mode prog-mode "Python"
+        ...
+        (cond
+         ;; Tree-sitter.
+         ((treesit-ready-p 'python)
+          (treesit-parser-create 'python)
+          (setq-local treesit-font-lock-settings python--treesit-settings)
+          (setq-local treesit-font-lock-feature-list
+                      '((comment string function-name)
+                        (class-name keyword builtin)
+                        (string-interpolation decorator)))
+          (treesit-major-mode-setup))
+         (t
+          ;; No tree-sitter, do nothing or fallback to another mode.
+          ...))))
+
+    (add-hook 'elpaca-after-init-hook #'my/python-setup))
+
+  (use-package anaconda-mode
+    :ensure t
+    :defer t
+    :hook
+    (python-mode . anaconda-mode)
+    (python-ts-mode . anaconda-mode)
+    (python-mode . anaconda-eldoc-mode)
+    (python-ts-mode . anaconda-eldoc-mode))
+#+end_src
+
+tbh, I never really cared for jupyter lab so we use =code-cells=.
+#+begin_src emacs-lisp
+  (use-package code-cells
+    :ensure t
+    :after python
+    :defer t
+    :mode
+    ("\\.ipynb\\'" . code-cells-mode)
+    :hook
+    (code-cells-mode . run-python)
+    :bind
+    (:map code-cells-mode-map
+          ("C-c C-c" . code-cells-eval)
+          ("M-p" . code-cells-backward-cell)
+          ("M-n" . code-cells-forward-cell)
+  	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
+    :config
+    (add-to-list 'code-cells-convert-ipynb-style '("jupytext" "--to" "py:percent"))
+    (defun my/code-cells-new-cell ()
+      (interactive)
+      (newline 2)
+      (code-cells-forward-cell)
+      (insert "# %%")
+      (newline))
+
+    (defun my/code-cells-eval-and-step ()
+      (interactive)
+      (call-interactively #'code-cells-eval-and-step)
+      (when (= (point) (point-max))
+        (my/code-cells-new-cell)))
+    
+    (defun my/code-cells-write-ipynb (file)
+      (when (string= (file-name-extension file) "ipynb")
+          (code-cells-write-ipynb file)))
+    
+    (add-hook 'treemacs-create-file-functions #'my/code-cells-write-ipynb)
+    
+    (keymap-set code-cells-mode-map "C-c C-n" #'my/code-cells-new-cell)
+    (keymap-set code-cells-mode-map "C-c C-s" #'my/code-cells-eval-and-step))
+#+end_src
+
+*** git
+magit is probably one of the best packages there is.
+#+begin_src emacs-lisp
+  (use-package pinentry
+    :ensure t
+    :defer t
+    :config
+    (pinentry-start))
+
+  (use-package magit
+    :ensure (:wait t)
+    :defer t
+    :bind
+    (("C-x g" . magit-status)
+     ("C-x M-g" . magit-dispatch)
+     ("C-c M-g" . magit-file-dispatch))
+    :config
+    (remove-hook 'server-switch-hook 'magit-commit-diff)
+    (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff))
+
+  (use-package magit-lfs
+    :ensure t
+    :after magit
+    :defer t)
+
+  (use-package diff-hl
+    :ensure t
+    :defer t
+    :hook
+    (magit-post-refresh . diff-hl-magit-post-refresh)
+    (magit-mode . diff-hl-mode)
+    :config
+    (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+    (add-hook 'diff-hl-mode-on-hook
+              (lambda ()
+                (unless (display-graphic-p)
+                  (diff-hl-margin-local-mode)))))
+
+  (use-package consult-gh
+    :ensure t
+    :defer t
+    :commands consult-gh)
+
+  (use-package consult-gh-embark
+      :ensure t
+      :defer t
+      :after (consult-gh embark)
+      :hook
+      (magit-mode . consult-gh-embark-mode))
+
+  (use-package consult-gh-with-pr-review
+    :ensure t
+    :defer t
+    :hook
+    (consult-gh-pr-view-mode . consult-gh-with-pr-review-mode))
+
+  (use-package consult-gh-nerd-icons
+    :defer t
+    :ensure t)
+#+end_src
+
+*** treemacs
+treemacs for a treeview of our working directory
+#+begin_src emacs-lisp
+  (use-package treemacs-nerd-icons
+    :ensure t
+    :after nerd-icons
+    :defer nil
+    :if (display-graphic-p))
+
+  (use-package treemacs
+    :ensure t
+    :defer t
+    :bind
+    (("C-c t o" . treemacs-select-window)
+     ("C-c t t" . treemacs)
+     :map treemacs-mode-map
+          ("x" . treemacs-mark-or-unmark-path-at-point)
+          ("M" . treemacs-move-marked-files)
+          ("D" . treemacs-delete-marked-files))
+    :hook
+    (treemacs-mode . treemacs-peek-mode)
+    (treemacs-mode . (lambda () (dired-sidebar-hide-sidebar)))
+    (treemacs-mode . (lambda () (golden-ratio-mode 0)))
+    :custom
+    (treemacs-display-in-side-window nil)
+    :config
+    (if (display-graphic-p)
+        (treemacs-load-theme "nerd-icons"))
+
+    (add-hook 'find-file-hook (lambda ()
+  			      (unless display-line-numbers-mode
+  				(display-line-numbers-mode 1)))))
+
+  (use-package treemacs-projectile
+    :ensure t
+    :defer t
+    :hook
+    (treemacs-mode . treemacs-projectile))
+
+  (use-package treemacs-magit
+    :ensure t
+    :after (treemacs magit)
+    :defer t
+    :hook
+    (treemacs-mode . treemacs-magit-mode))
+#+end_src
+*** demap
+a minimap for our code
+#+begin_src emacs-lisp
+  (use-package demap
+    :ensure (:autoloads t)
+    :bind
+    ("C-c d" . demap-toggle)
+    :custom
+    (demap-minimap-minimum-wdith 30)
+    (demap-minimap-window-side 'right))
+#+end_src
+*** tree-sitter
+the most important thing is tree-sitter.
+#+begin_src emacs-lisp
+  (use-package treesit-auto
+    :ensure t
+    :defer t
+    :custom
+    (treesit-auto-install 'prompt)
+    :config
+    (treesit-auto-add-to-auto-mode-alist 'all)
+    :hook
+    (elpaca-after-init . global-treesit-auto-mode))
+
+  (use-package tree-sitter
+    :ensure t
+    :after treesit-auto
+    :defer t
+    :hook
+    (elpaca-after-init . global-tree-sitter-mode)
+    (tree-sitter-after-on . tree-sitter-hl-mode)
+    :config
+    (setq treesit-extra-load-path (list (file-truename "~/.emacs.d/tree-sitter/")))
+    (setq treesit-language-source-alist
+     '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+       (cmake "https://github.com/uyha/tree-sitter-cmake")
+       (css "https://github.com/tree-sitter/tree-sitter-css")
+       (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
+       (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+       (go "https://github.com/tree-sitter/tree-sitter-go")
+       (html "https://github.com/tree-sitter/tree-sitter-html")
+       (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+       (json "https://github.com/tree-sitter/tree-sitter-json")
+       (make "https://github.com/alemuller/tree-sitter-make")
+       (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+       (python "https://github.com/tree-sitter/tree-sitter-python")
+       (toml "https://github.com/tree-sitter/tree-sitter-toml")
+       (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+       (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+       (yaml "https://github.com/ikatyang/tree-sitter-yaml"))))
+
+  (use-package tree-sitter-langs
+    :ensure t
+    :defer t
+    :config
+    (puthash 'python-ts-mode 'python tree-sitter-major-mode-language-table)
+    (puthash 'c++-ts-mode 'cpp tree-sitter-major-mode-language-table)
+    (puthash 'rust-ts-mode 'rust tree-sitter-major-mode-language-table)
+    (puthash 'js-ts-mode 'js tree-sitter-major-mode-language-table)
+    (puthash 'typescript-ts-mode 'ts tree-sitter-major-mode-language-table)
+    (puthash 'ruby-ts-mode 'ruby tree-sitter-major-mode-language-table))
+#+end_src
+
+*** docker
+for the rare occasion I do use docker:
+#+begin_src emacs-lisp 
+  (use-package dockerfile-ts-mode
+    :ensure nil
+    :defer t
+    :mode
+    (("Dockerfile\\'" . dockerfile-ts-mode)
+     ("\\.dockerfile\\'" . dockerfile-ts-mode))
+    :hook
+    (dockerfile-ts-mode . lsp-deferred))
+#+end_src
+*** typescript and javascript
+I rarely use these two but when I do.
+#+begin_src emacs-lisp
+  (use-package typescript-ts-mode
+    :ensure nil
+    :defer t
+    :mode
+    (("\\.ts\\'" . typescript-ts-mode)
+     ("\\.mts\\'" . typescript-ts-mode)
+     ("\\.cts\\'" . typescript-ts-mode))
+    :hook
+    (typescript-ts-mode . lsp-deferred)
+    (typescript-ts-mode . subword-mode))
+
+  (use-package tsx-ts-mode
+    :ensure nil
+    :defer t
+    :mode
+    (("\\.tsx\\'" . tsx-ts-mode)
+     ("\\.jsx\\'" . tsx-ts-mode))
+    :hook
+    (tsx-ts-mode . lsp-deferred)
+    (tsx-ts-mode . subword-mode))
+
+  (use-package js-ts-mode
+    :ensure nil
+    :defer t
+    :mode
+    (("\\.js\\'" . js-ts-mode)
+     ("\\.mjs\\'" . js-ts-mode)
+     ("\\.cjs\\'" . js-ts-mode))
+    :hook
+    (js-ts-mode . lsp-deferred)
+    (js-ts-mode . subword-mode))
+#+end_src
+
+*** json
+#+begin_src emacs-lisp
+  (use-package json-ts-mode
+    :ensure nil
+    :defer t
+    :mode
+    (("\\.json\\'" . json-ts-mode)
+     ("\\.jsonl\\'" . json-ts-mode))
+    :hook
+    (json-ts-mode . lsp-deferred)
+    (json-ts-mode . subword-mode))
+
+  (use-package moldable-emacs
+    :ensure (moldable-emacs :host github :repo "ag91/moldable-emacs")
+    :defer t
+    :bind (("C-c M m" . me-mold)
+           ("C-c M f" . me-go-forward)
+           ("C-c M b" . me-go-back)
+           ("C-c M o" . me-open-at-point)
+           ("C-c M d" . me-mold-docs)
+           ("C-c M g" . me-goto-mold-source)
+           ("C-c M e a" . me-mold-add-last-example)
+           )
+    :config
+    (add-to-list
+     'me-files-with-molds
+     (concat
+      (file-name-directory (symbol-file 'me-mold))
+      "molds/experiments.el")) ;; TODO this is relevant only if you have private molds
+    (me-setup-molds))
+#+end_src
+*** language server protocol
+I use lsp-mode for lsp
+#+begin_src emacs-lisp
+  (use-package lsp-mode
+    :ensure t
+    :defer t
+    :init
+    (setq lsp-keymap-prefix "C-c l")
+    :hook
+    (prog-mode . lsp-deferred)
+    (sh-mode . lsp-deferred)
+    (bash-ts-mode . lsp-deferred)
+    (lsp-mode . lsp-enable-which-key-integration)
+    (org-src-mode . lsp-deferred)
+    :commands lsp)
+
+  (use-package lsp-ui
+    :ensure t
+    :after lsp-mode
+    :defer t
+    :commands
+    lsp-ui-mode
+    :hook
+    (lsp-mode . lsp-ui-mode)
+    :config
+    (lsp-ui-doc-mode 1))
+
+  (use-package lsp-treemacs
+    :ensure t
+    :defer t
+    :commands
+    lsp-treemacs-errors-list
+    :hook
+    (lsp-mode . lsp-treemacs-sync-mode))
+
+  (use-package consult-lsp
+    :ensure t
+    :defer t
+    :after (consult lsp-mode))
+#+end_src
+
+*** misc-ish
+meow pt. 2 and rainbow delimiters
+#+begin_src emacs-lisp
+  (use-package meow-tree-sitter
+    :ensure t
+    :defer t
+    :after (meow tree-sitter)
+    :init
+    (meow-tree-sitter-register-defaults)
+    :config
+    (meow-normal-define-key
+     '("o" . meow-tree-sitter-node)))
+
+  (use-package rainbow-delimiters
+    :ensure t
+    :hook
+    (prog-mode . rainbow-delimiters-mode))
+#+end_src
+
+I like to use undo-tree (and you will see why I put this under the ide section).
+#+begin_src emacs-lisp
+  (use-package undo-tree
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . global-undo-tree-mode)
+    :config
+    (keymap-global-set "C-x u" #'my/undo-tree-visualize)
+
+    (defun my/undo-tree-visualize ()
+      (interactive)
+      (if (and (buffer-file-name) (treemacs-get-local-window))
+          (progn
+            (let ((original-buffer (window-buffer (other-window-for-scrolling))))
+              (unless undo-tree-mode
+                (undo-tree-mode))
+              (undo-tree-visualize)
+              (switch-to-buffer (get-buffer original-buffer)))
+            (treemacs-select-window)
+            (my/split-window-below)
+            (switch-to-buffer
+             (get-buffer undo-tree-visualizer-buffer-name)))
+        (undo-tree-visualize)))
+
+    (defun my/undo-tree-visualizer-quit ()
+      (interactive)
+      (let* ((win-list (window-at-side-list)))
+        (undo-tree-visualizer-quit)
+        (dolist (win win-list)
+          (when
+              (string= (buffer-name (window-buffer win)) undo-tree-visualizer-buffer-name)
+            (delete-window win)))))
+    
+    (defun my/refresh-undo-tree-visualizer (buffer)
+      (my/undo-tree-visualizer-quit)
+      (my/undo-tree-visualize)
+      (get-buffer buffer)
+      (other-window 1))
+    
+    (add-hook 'treemacs-after-visit-functions #'my/refresh-undo-tree-visualizer))
+#+end_src
+
+I like to use flycheck for on-the-fly syntax checking.
+#+begin_src emacs-lisp
+  (use-package flycheck
+    :ensure t
+    :defer t
+    :custom
+    (flycheck-idle-change-delay 5)
+    (flycheck-idle-buffer-switch-delay 5)
+    (flycheck-check-syntax-automatically '(save idle-change mode-enabled))
+    :hook
+    (elpaca-after-init . global-flycheck-mode))
+
+  (use-package flycheck-posframe
+    :ensure t
+    :after flycheck
+    :defer t
+    :if (or (featurep 'tty-child-frames) (display-graphic-p))
+    :init
+    (flycheck-posframe-configure-pretty-defaults)
+    :custom
+    (flycheck-posframe-border-width 16)
+    :hook
+    (flycheck-mode . flycheck-posframe-mode))
+
+  (use-package consult-flycheck
+    :ensure t
+    :defer t
+    :after (consult flycheck)
+    :commands
+    consult-flycheck)
+
+  (use-package flycheck-relint
+    :ensure t
+    :after flycheck
+    :defer t)
+#+end_src
+
+and also eldoc and eldoc-box
+ #+begin_src emacs-lisp
+   (use-package eldoc-box
+     :ensure t
+     :defer t
+     :if (or (featurep 'tty-child-frames) (display-graphic-p))
+     :bind
+     (("C-<prior>" . eldoc-box-scroll-down)
+      ("C-<next>"  . eldoc-box-scroll-up))
+     :hook (prog-mode . eldoc-box-hover-mode)
+     :config
+     (when (fboundp 'doom-color)
+       (set-face-attribute 'eldoc-box-border nil
+                           :background (doom-color 'yellow)))
+     
+     (defun my/eldoc-box--always-frame-top-right (width _height)
+       (pcase-let ((`(,_left ,right ,top) eldoc-box-offset))
+         (cons (- (frame-outer-width) width right)
+               top)))
+     (setq eldoc-box-position-function #'my/eldoc-box--always-frame-top-right))
+ #+end_src
+
+as a way to improve my code writing, I use codemetrics to evaluate my code complexity (with the aim of reducing the complexity)
+
+#+begin_src emacs-lisp
+  (use-package codemetrics
+    :defer t
+    :ensure (codemetrics :host github :repo "jcs-elpa/codemetrics")
+    :hook
+    (tree-sitter-mode . codemetrics-mode))
+#+end_src
+
+I also like to use combobulate to check my code structure.
+#+begin_src emacs-lisp
+  (use-package combobulate
+    :defer t
+    :ensure (combobulate :host github :repo "mickeynp/combobulate")
+    :custom
+    (combobulate-key-prefix "C-c u")
+    :hook
+    (tree-sitter-mode . combobulate-mode))
+#+end_src
+
+also dtrt-indent for better indentation (because without it, I would have no way to automatically organise indentation in python)
+#+begin_src emacs-lisp
+  (use-package dtrt-indent
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . dtrt-indent-global-mode))
+
+  (use-package indent-bars
+    :ensure t
+    :defer t
+    :init
+    (set-face-attribute 'default nil :stipple nil)
+    :custom
+    (indent-bars-treesit-support t)
+    (indent-bars-no-descend-lists t)
+    :hook
+    (prog-mode . indent-bars-mode))
+#+end_src
+
+and then finally, yasnippet for templates.
+#+begin_src emacs-lisp
+  (use-package yasnippet
+    :ensure t
+    :defer t
+    :custom
+    (yas-snippet-dirs '("~/.emacs.d/snippets"))
+    :hook
+    (prog-mode . yas-minor-mode)
+    (org-mode . yas-minor-mode)
+    :hook
+    (elpaca-after-init . yas-reload-all))
+
+  (use-package yasnippet-snippets
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . yasnippet-snippets-initialize))
+
+  (use-package consult-yasnippet
+    :ensure t
+    :after (consult yasnippet)
+    :defer t
+    :commands
+    consult-yasnippet)
 #+end_src
 
 ** org-mode
+#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-org.el"
 now let's configure org mode
 #+begin_src emacs-lisp
   (use-package org
+    :ensure (:wait t)
+    :defer nil
     :custom
     (org-directory (file-truename "~/org/"))
+    (org-startup-folded t) ;; a more compact display
     (org-agenda-start-on-weekday 0)
     (org-startup-indented t)
     (org-M-RET-may-split-line '((item . nil)))
@@ -1130,35 +1884,70 @@ now let's configure org mode
     (keymap-global-set "C-c l" #'org-link-store-props)
     (keymap-global-set "C-c a" #'org-agenda)
 
+    (defun my/org-mode-level-font-size ()
+      (set-face-attribute 'org-level-4 nil :inherit 'outline-4 :height 1.0)      
+      (set-face-attribute 'org-level-3 nil :inherit 'outline-3 :height 1.1)      
+      (set-face-attribute 'org-level-2 nil :inherit 'outline-2 :height 1.2)      
+      (set-face-attribute 'org-level-1 nil :inherit 'outline-1 :height 1.3)      
+      (set-face-attribute 'org-document-title nil :inherit 'outline-1 :height 1.4 :underline nil))
+
+    (my/org-mode-level-font-size)
+    
     (unless (display-graphic-p)
       (keymap-unset org-mode-map "C-c ,")
       (keymap-set org-mode-map "C-c , p" #'org-priority)
-      (keymap-set org-mode-map "C-c , i" #'org-insert-structure-template)))
+      (keymap-set org-mode-map "C-c , i" #'org-insert-structure-template))
+
+    (org-link-set-parameters "gh"
+      			   :follow #'my/gh-open
+      			   :export #'my/gh-export
+      			   :store-link #'my/gh-store-link
+      			   :insert-description #'my/gh-link-description)
+
+    (org-link-set-parameters "hf"
+      			   :follow #'hf-open
+      			   :export #'hf-export
+      			   :insert-description #'hf-description
+      			   :store-link #'hf-store-link)
+
+
+    (org-link-set-parameters "repo"
+      			   :follow #'my/repo-open
+      			   :export #'my/repo-export
+      			   :store-link #'my/repo-store-link
+      			   :insert-description #'my/repo-link-description)
+
+
+    (org-link-set-parameters "ref"
+     			   :follow #'my/ref-link--open-link
+     			   :export #'my/ref-link--export-link
+     			   :store-link #'my/ref-link--store-link
+     			   :insert-description #'my/ref-link--insert-description))
 #+end_src
 
 then, we make org mode aesthetically pleasing.
 #+begin_src emacs-lisp
   ;; org-ibullets for nice-looking bullets
   (use-package org-ibullets
-    :commands org-ibullets-mode
-    :straight (org-ibullets
-               :type git
-               :host github
-               :repo "jamescherti/org-ibullets.el")
+    :defer t
+    :ensure (org-ibullets :host github :repo "jamescherti/org-ibullets.el" :build (:after org))
     :hook
     (org-mode . org-ibullets-mode))
 
   ;; org-modern-indent because org-modern doesn't work with org-indent-mode
   (use-package org-modern-indent    
-    :straight (org-modern-indent
-               :type git
-               :host github
-               :repo "jdtsmith/org-modern-indent")
-    :config
-    (add-hook 'org-mode-hook #'org-modern-indent-mode 90))
+    :defer t
+    :ensure (org-modern-indent :host github :repo "jdtsmith/org-modern-indent" :build (:after org))
+    :hook
+    (org-mode . org-modern-indent-mode))
 
   ;; org-modern
   (use-package org-modern
+    :ensure t
+    :after org
+    :defer t
+    :hook
+    (org-mode . global-org-modern-mode)
     :custom    
     (org-modern-hide-stars nil)
     (org-modern-star 'replace)
@@ -1190,21 +1979,11 @@ then, we make org mode aesthetically pleasing.
                     window-divider-last-pixel))
       (face-spec-reset-face face)
       (set-face-foreground face (face-attribute 'default :background)))
-    (set-face-background 'fringe (face-attribute 'default :background))
-
-    (defun my/org-mode-level-font-size ()
-      (set-face-attribute 'org-level-4 nil :inherit 'outline-4 :height 1.0)      
-      (set-face-attribute 'org-level-3 nil :inherit 'outline-3 :height 1.1)      
-      (set-face-attribute 'org-level-2 nil :inherit 'outline-2 :height 1.2)      
-      (set-face-attribute 'org-level-1 nil :inherit 'outline-1 :height 1.3)      
-      (set-face-attribute 'org-document-title nil :inherit 'outline-1 :height 1.4 :underline nil))
-
-    (my/org-mode-level-font-size)
-    (global-org-modern-mode))
+    (set-face-background 'fringe (face-attribute 'default :background)))
 
   ;; and then we use org-appear to unhide the emphasis markers when hovered over
   (use-package org-appear
-    
+    :ensure t
     :hook
     (org-mode . org-appear-mode))
 #+end_src
@@ -1282,12 +2061,6 @@ I have four custom links (three for repo-type sites and one for citations).
         :type "gh"
         :link (my/gh-expand-link link)
         :description (my/gh-link-description link description)))
-
-     (org-link-set-parameters "gh"
-     			 :follow #'my/gh-open
-     			 :export #'my/gh-export
-     			 :store-link #'my/gh-store-link
-     			 :insert-description #'my/gh-link-description)
    #+end_src
    
 2. huggingface
@@ -1321,77 +2094,67 @@ I have four custom links (three for repo-type sites and one for citations).
         :link (hf-expand-link repo repo-type)
         :description description))
 
-     (org-link-set-parameters "hf"
-     			 :follow #'hf-open
-     			 :export #'hf-export
-     			 :insert-description #'hf-description
-     			 :store-link #'hf-store-link)
    #+end_src
 
 3. other git-based repos
    #+begin_src emacs-lisp 
-     (defun my/repo-open (link _)
-       (browse-url (my/repo-expand-link link)))
+      (defun my/repo-open (link _)
+        (browse-url (my/repo-expand-link link)))
 
-     (setq repo-list '("codeberg.org"))
+      (setq repo-list '("codeberg.org"))
 
-     (defun my/repo-domain ()
-       (interactive
-        (let ((repo-type (completing-read "Repo domain: " repo-list)))
-          (when (not (member repo-type repo-list))
-            (add-to-list 'repo-list (list repo-type)))
-          repo-type)))
+      (defun my/repo-domain ()
+        (interactive
+         (let ((repo-type (completing-read "Repo domain: " repo-list)))
+           (when (not (member repo-type repo-list))
+             (add-to-list 'repo-list (list repo-type)))
+           repo-type)))
 
-     (defun my/repo-expand-link (link)
-       (interactive "r")
-       (let ((domain (my/repo-domain)))
-         (if (string-search ":" (string-remove-prefix "repo:" link))
-     	(apply #'format
-     	       (concat "https://" domain "/%s/tree/%s") (my/repo-parse-link link))
-           (format "https://%s/%s" domain link))))
-       
-     (defun my/repo-export (link description backend info)
-       (if-let ((transcode-link (alist-get
-     			    'link (org-export-backend-transcoders
-     				   (org-export-get-backend backend)))))
-           (let ((link (org-element-create
-     		   'link (list :type "https"
-     			       :path (my/repo-expand-link link)))))
-     	(funcall transcode-link link desc info))
-         (concat "repo:" link)))
+      (defun my/repo-expand-link (link)
+        (interactive "r")
+        (let ((domain (my/repo-domain)))
+          (if (string-search ":" (string-remove-prefix "repo:" link))
+      	(apply #'format
+      	       (concat "https://" domain "/%s/tree/%s") (my/repo-parse-link link))
+            (format "https://%s/%s" domain link))))
+        
+      (defun my/repo-export (link description backend info)
+        (if-let ((transcode-link (alist-get
+      			    'link (org-export-backend-transcoders
+      				   (org-export-get-backend backend)))))
+            (let ((link (org-element-create
+      		   'link (list :type "https"
+      			       :path (my/repo-expand-link link)))))
+      	(funcall transcode-link link desc info))
+          (concat "repo:" link)))
 
-     (defun my/get-sep (link)
-       (if (string-search "#" link)
-           (if (string-search ":#" link)
-     	  ":#" "#")
-         ":"))
+      (defun my/get-sep (link)
+        (if (string-search "#" link)
+            (if (string-search ":#" link)
+      	  ":#" "#")
+          ":"))
 
-     (defun my/get-entry-type (link)
-       (if (string= (my/get-sep link) ":#")
-           "pr"
-         "issue"))
+      (defun my/get-entry-type (link)
+        (if (string= (my/get-sep link) ":#")
+            "pr"
+          "issue"))
 
-     (defun my/repo-parse-link (link) 
-       (let ((parts (string-split (string-remove-prefix "repo:" link) (my/get-sep link) t)))
-         parts))
+      (defun my/repo-parse-link (link) 
+        (let ((parts (string-split (string-remove-prefix "repo:" link) (my/get-sep link) t)))
+          parts))
 
-     (defun my/repo-link-description (link description)
-       (or description
-           (if (string-search ":" (string-remove-prefix "repo:" link))
-     	  (string-remove-prefix "repo:" link)
-     	link)))
+      (defun my/repo-link-description (link description)
+        (or description
+            (if (string-search ":" (string-remove-prefix "repo:" link))
+      	  (string-remove-prefix "repo:" link)
+      	link)))
 
-     (defun my/repo-store-link (link &optional description)
-       (org-link-store-props
-        :type "repo"
-        :link (my/repo-expand-link link)
-        :description (my/repo-link-description link description)))
+      (defun my/repo-store-link (link &optional description)
+        (org-link-store-props
+         :type "repo"
+         :link (my/repo-expand-link link)
+         :description (my/repo-link-description link description)))
 
-     (org-link-set-parameters "repo"
-     			 :follow #'my/repo-open
-     			 :export #'my/repo-export
-     			 :store-link #'my/repo-store-link
-     			 :insert-description #'my/repo-link-description)
    #+end_src
    
 4. citations
@@ -1425,13 +2188,6 @@ I have four custom links (three for repo-type sites and one for citations).
         :type "ref"
         :link link
         :description (my/ref-link--insert-description link description)))
-
-     (org-link-set-parameters "ref"
-     			 :follow #'my/ref-link--open-link
-     			 :export #'my/ref-link--export-link
-     			 :store-link #'my/ref-link--store-link
-     			 :insert-description #'my/ref-link--insert-description)
-
    #+end_src
    
 *** org-gcal
@@ -1445,8 +2201,10 @@ google calendar integration
                                          :user "dania.moriazi01@khu.ac.kr^secret"))
 
   (use-package org-gcal
-    
+    :ensure t
+    :defer t
     :after org
+    :commands org-gcal-sync
     :config
     (setq org-gcal-fetch-file-alist '(("dania.moriazi01@khu.ac.kr" . "/home/dania/org/calendar.org"))))
 #+end_src
@@ -1463,13 +2221,9 @@ because literate programming.
 
 *** org-projectile
 #+begin_src emacs-lisp
-  (use-package org-projectile
-    
-    :after projectile)
-
   (use-package org-project-capture
-    
-    :after org-projectile
+    :ensure t
+    :defer t
     :bind
     (("C-c n p" . org-project-capture-project-todo-completing-read)
      ("C-c n t" . org-project-capture-capture-for-current-project)
@@ -1480,449 +2234,43 @@ because literate programming.
             (make-instance 'org-project-capture-projectile-backend))
       (setq org-project-capture-projects-file (expand-file-name "projects.org" org-directory))
       (org-project-capture-single-file)))
-#+end_src
 
-** emacs as an ide
-first, we configure the programming languages we want to use. I primarily use python but sometimes I use docker as well.
-
-*** tree-sitter
-the most important thing is tree-sitter.
-#+begin_src emacs-lisp
-  (use-package treesit-auto
-  :custom
-  (treesit-auto-install 'prompt)
-  :config
-  (treesit-auto-add-to-auto-mode-alist 'all)
-  (global-treesit-auto-mode))
-
-  (use-package tree-sitter
-    :after treesit-auto
-    :hook
-    (tree-sitter-after-on . tree-sitter-hl-mode)
-    :config
-    (setq treesit-extra-load-path (list (file-truename "~/.emacs.d/tree-sitter/")))
-    (setq treesit-language-source-alist
-     '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-       (cmake "https://github.com/uyha/tree-sitter-cmake")
-       (css "https://github.com/tree-sitter/tree-sitter-css")
-       (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
-       (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-       (go "https://github.com/tree-sitter/tree-sitter-go")
-       (html "https://github.com/tree-sitter/tree-sitter-html")
-       (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-       (json "https://github.com/tree-sitter/tree-sitter-json")
-       (make "https://github.com/alemuller/tree-sitter-make")
-       (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-       (python "https://github.com/tree-sitter/tree-sitter-python")
-       (toml "https://github.com/tree-sitter/tree-sitter-toml")
-       (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-       (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-       (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
-       (global-tree-sitter-mode t))
-
-  (use-package tree-sitter-langs
-    :config
-    (puthash 'python-ts-mode 'python tree-sitter-major-mode-language-table)
-    (puthash 'c++-ts-mode 'cpp tree-sitter-major-mode-language-table)
-    (puthash 'rust-ts-mode 'rust tree-sitter-major-mode-language-table)
-    (puthash 'js-ts-mode 'js tree-sitter-major-mode-language-table)
-    (puthash 'typescript-ts-mode 'ts tree-sitter-major-mode-language-table)
-    (puthash 'ruby-ts-mode 'ruby tree-sitter-major-mode-language-table))
-    
-#+end_src
-
-*** python
-I use mamba as my primary python environment.
-#+begin_src emacs-lisp 
-  (use-package conda-projectile
-    :after conda
-    :straight nil)
-
-  (use-package anaconda-mode
-    :after conda
-    :hook
-    (python-mode . anaconda-mode)
-    (python-ts-mode . anaconda-mode)
-    (python-mode . anaconda-eldoc-mode)
-    (python-ts-mode . anaconda-eldoc-mode))
-
-  (use-package conda
-    :hook
-    (treemacs-mode . conda-env-autoactivate-mode)
+  (use-package org-projectile
     :defer t
-    :config
-    (conda-env-initialize-interactive-shells)
-    (conda-env-initialize-eshell)
-
-    (conda-mode-line-setup))
+    :ensure t
+    :after projectile)
 #+end_src
-
-then we configure emacs' python-mode.
-#+begin_src emacs-lisp
-  (use-package python
-    :defer t
-    :after tree-sitter conda
-    :mode
-    (("\\.py\\'" . python-ts-mode)
-     ("\\.pyi\\'" . python-ts-mode)
-     ("\\.pyw\\'" . python-ts-mode))
-    :hook
-    (python-mode . lsp-deferred)
-    (python-ts-mode . lsp-deferred)
-    (python-mode . subword-mode)
-    (python-ts-mode . subword-mode)
-    (python-ts-mode . python-mode)
-    :custom
-    (python-indent-offset 4)
-    (setq PYTHONPATH (file-truename "~/miniforge3/bin/python"))
-    (setenv "PYTHONPATH" PYTHONPATH)
-    (setq python-shell-interpreter PYTHONPATH)
-    (setq python-interpreter PYTHONPATH)
-    (setq python-shell-exec-path conda-env-current-path)
-    (define-derived-mode python-mode prog-mode "Python"
-      ...
-      (cond
-       ;; Tree-sitter.
-       ((treesit-ready-p 'python)
-        (treesit-parser-create 'python)
-        (setq-local treesit-font-lock-settings python--treesit-settings)
-        (setq-local treesit-font-lock-feature-list
-                    '((comment string function-name)
-                      (class-name keyword builtin)
-                      (string-interpolation decorator)))
-        (treesit-major-mode-setup))
-       (t
-        ;; No tree-sitter, do nothing or fallback to another mode.
-        ...))))
-#+end_src
-
-tbh, I never really liked using jupyter lab so we use =code-cells=.
-#+begin_src emacs-lisp
-  (use-package code-cells
-    :defer t
-    :mode
-    ("\\.ipynb\\'" . code-cells-mode)
-    :hook
-    (code-cells-mode . run-python)
-    :bind
-    (:map code-cells-mode-map
-          ("C-c C-c" . code-cells-eval)
-          ("M-p" . code-cells-backward-cell)
-          ("M-n" . code-cells-forward-cell)
-  	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
-    :config
-    (add-to-list 'code-cells-convert-ipynb-style '("jupytext" "--to" "py:percent"))
-    (defun my/code-cells-new-cell ()
-      (interactive)
-      (newline 2)
-      (code-cells-forward-cell)
-      (insert "# %%")
-      (newline))
-
-    (defun my/code-cells-eval-and-step ()
-      (interactive)
-      (call-interactively #'code-cells-eval-and-step)
-      (when (= (point) (point-max))
-        (my/code-cells-new-cell)))
-    
-    (defun my/code-cells-write-ipynb (file)
-      (when (string= (file-name-extension file) "ipynb")
-          (code-cells-write-ipynb file)))
-    
-    (add-hook 'treemacs-create-file-functions #'my/code-cells-write-ipynb)
-    
-    (keymap-set code-cells-mode-map "C-c C-n" #'my/code-cells-new-cell)
-    (keymap-set code-cells-mode-map "C-c C-s" #'my/code-cells-eval-and-step))
-#+end_src
-
-*** docker
-for the rare occasion I do use docker:
-#+begin_src emacs-lisp 
-  (use-package dockerfile-ts-mode
-    :straight nil
-    :defer t
-    :mode
-    (("Dockerfile\\'" . dockerfile-ts-mode)
-     ("\\.dockerfile\\'" . dockerfile-ts-mode))
-    :hook
-    (dockerfile-ts-mode . lsp-deferred))
-#+end_src
-*** typescript and javascript
-I rarely use these two but when I do.
-#+begin_src emacs-lisp
-  (use-package typescript-ts-mode
-    :straight nil
-    :defer t
-    :mode
-    (("\\.ts\\'" . typescript-ts-mode)
-     ("\\.mts\\'" . typescript-ts-mode)
-     ("\\.cts\\'" . typescript-ts-mode))
-    :hook
-    (typescript-ts-mode . lsp-deferred)
-    (typescript-ts-mode . subword-mode))
-
-  (use-package tsx-ts-mode
-    :straight nil
-    :defer t
-    :mode
-    (("\\.tsx\\'" . tsx-ts-mode)
-     ("\\.jsx\\'" . tsx-ts-mode))
-    :hook
-    (tsx-ts-mode . lsp-deferred)
-    (tsx-ts-mode . subword-mode))
-
-  (use-package js-ts-mode
-    :straight nil
-    :defer t
-    :mode
-    (("\\.js\\'" . js-ts-mode)
-     ("\\.mjs\\'" . js-ts-mode)
-     ("\\.cjs\\'" . js-ts-mode))
-    :hook
-    (js-ts-mode . lsp-deferred)
-    (js-ts-mode . subword-mode))
-#+end_src
-
-*** language server protocol
-I use lsp-mode for lsp
-#+begin_src emacs-lisp
-  (use-package lsp-mode
-    :defer t
-    :init
-    (setq lsp-keymap-prefix "C-c l")
-    :hook
-    (prog-mode . lsp-deferred)
-    (sh-mode . lsp-deferred)
-    (bash-ts-mode . lsp-deferred)
-    (lsp-mode . lsp-enable-which-key-integration)
-    :commands lsp)
-
-  (use-package lsp-ui
-    :after lsp-mode
-    :commands
-    lsp-ui-mode
-    :hook
-    (lsp-mode . lsp-ui-mode)
-    :config
-    (lsp-ui-doc-mode 1))
-
-  (use-package lsp-treemacs
-    :after lsp-mode
-    :commands
-    lsp-treemacs-errors-list
-    :hook
-    (lsp-mode . lsp-treemacs-sync-mode))
-
-  (use-package consult-lsp
-    :after consult lsp-mode)
-#+end_src
-
-*** TODO misc-ish
-meow pt. 2?
-#+begin_src emacs-lisp
-  (use-package meow-tree-sitter
-    :defer t
-    :after meow tree-sitter
-    :init
-    (meow-tree-sitter-register-defaults)
-    :config
-    (meow-normal-define-key
-     '("o" . meow-tree-sitter-node)))
-#+end_src
-
-then we configure treemacs.
-#+begin_src emacs-lisp
-  (use-package treemacs-nerd-icons
-    :if (display-graphic-p))
-
-  (straight-use-package 'treemacs-projectile)
-
-  (use-package treemacs
-    :init
-    (if (display-graphic-p)
-        (treemacs-load-theme "nerd-icons"))
-    (keymap-global-set "C-c t o" #'treemacs-select-window)
-    (keymap-global-set "C-c t t" #'treemacs)
-    :hook
-    (treemacs-mode . treemacs-peek-mode)
-    (treemacs-mode . (lambda () (dired-sidebar-hide-sidebar)))
-    :custom
-    (treemacs-display-in-side-window nil)
-    :config
-    (treemacs-projectile))
-#+end_src
-
-I like to use undo-tree (and you will see why I put this under the ide section).
-#+begin_src emacs-lisp
-  (use-package undo-tree
-    :hook
-    (emacs-startup . global-undo-tree-mode)
-    :config
-    (keymap-global-set "C-x u" #'my/undo-tree-visualize)
-
-    (defun my/undo-tree-visualize ()
-      (interactive)
-      (if (and (buffer-file-name) (treemacs-get-local-window))
-          (progn
-            (let ((original-buffer (window-buffer (other-window-for-scrolling))))
-              (unless undo-tree-mode
-                (undo-tree-mode))
-              (undo-tree-visualize)
-              (switch-to-buffer (get-buffer original-buffer)))
-            (treemacs-select-window)
-            (my/split-window-below)
-            (switch-to-buffer
-             (get-buffer undo-tree-visualizer-buffer-name)))
-        (undo-tree-visualize)))
-
-    (defun my/undo-tree-visualizer-quit ()
-      (interactive)
-      (let* ((win-list (window-at-side-list)))
-        (undo-tree-visualizer-quit)
-        (dolist (win win-list)
-          (when
-              (string= (buffer-name (window-buffer win)) undo-tree-visualizer-buffer-name)
-            (delete-window win)))))
-    
-    (defun my/refresh-undo-tree-visualizer (buffer)
-      (my/undo-tree-visualizer-quit)
-      (my/undo-tree-visualize)
-      (get-buffer buffer)
-      (other-window 1))
-    
-    (add-hook 'treemacs-after-visit-functions #'my/refresh-undo-tree-visualizer))
-#+end_src
-
-magit is probably one of the best packages there is.
-#+begin_src emacs-lisp
-  (use-package pinentry
-    :config
-    (pinentry-start))
-
-  (use-package magit
-    :bind
-    (("C-x g" . magit-status)
-     ("C-x M-g" . magit-dispatch)
-     ("C-c M-g" . magit-file-dispatch))
-    :config
-    (remove-hook 'server-switch-hook 'magit-commit-diff)
-    (remove-hook 'with-editor-filter-visit-hook 'magit-commit-diff))
-
-  (use-package magit-lfs
-    :after magit)
-
-  (use-package diff-hl
-    :hook
-    (magit-post-refresh . diff-hl-magit-post-refresh)
-    (magit-mode . diff-hl-mode)
-    :config
-    (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
-    (add-hook 'diff-hl-mode-on-hook
-              (lambda ()
-                (unless (display-graphic-p)
-                  (diff-hl-margin-local-mode)))))
-#+end_src
-
-I like to use flycheck for on-the-fly syntax checking.
-#+begin_src emacs-lisp
-  (use-package flycheck
+** more knowledge management
+*** citar
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-bib.el"
+  (use-package citar
+    :ensure t
     :defer t
     :custom
-    (flycheck-idle-change-delay 5)
-    (flycheck-idle-buffer-switch-delay 5)
-    (flycheck-check-syntax-automatically '(save idle-change mode-enabled))
+    (citar-bibliography '("~/bib/references.bib"))
     :hook
-    (prog-mode . global-flycheck-mode))
+    (LaTeX-mode . citar-capf-setup)
+    (org-mode . citar-capf-setup))
 
-  (use-package flycheck-posframe
-    :after flycheck
-    :if (or (featurep 'tty-child-frames) (display-graphic-p))
-    :init
-    (setq flycheck-posframe-border-width 16)
-    :config
-    (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode)
-    (flycheck-posframe-configure-pretty-defaults))
-#+end_src
-
-and also eldoc and eldoc-box
- #+begin_src emacs-lisp
-   (use-package eldoc
-     :hook
-     (prog-mode . global-eldoc-mode))
-
-   (use-package eldoc-box
-   :if (or (featurep 'tty-child-frames) (display-graphic-p))
-   :bind
-   (("C-<prior>" . eldoc-box-scroll-down)
-    ("C-<next>"  . eldoc-box-scroll-up))
-   :hook (prog-mode . eldoc-box-hover-mode)
-   :config
-   (when (fboundp 'doom-color)
-     (set-face-attribute 'eldoc-box-border nil
-   		      :background (doom-color 'yellow)))
-
-   (defun my/eldoc-box--always-frame-top-right (width _height)
-     (pcase-let ((`(,_left ,right ,top) eldoc-box-offset))
-       (cons (- (frame-outer-width) width right)
-   	  top)))
-   (setq eldoc-box-position-function #'my/eldoc-box--always-frame-top-right))
-#+end_src
-
-as a way to improve my code writing, I use codemetrics to evaluate my code complexity (with the aim of reducing the complexity)
-
-#+begin_src emacs-lisp
-  (use-package codemetrics
+  (use-package citar-embark
+    :ensure t :after (citar embark)
     :defer t
-    :straight (codemetrics :type git :host github :repo "jcs-elpa/codemetrics")
     :hook
-    (tree-sitter-mode . codemetrics-mode))
+    (citar-capf-setup . citar-embark-mode))
 #+end_src
-
-I also like to use combobulate to check my code structure.
-#+begin_src emacs-lisp
-  (use-package combobulate
-    :defer t
-    :straight (combobulate :type git :host github :repo "mickeynp/combobulate")
-    :custom
-    (combobulate-key-prefix "C-c u")
-    :hook
-    ((tree-sitter-mode . combobulate-mode)))
-#+end_src
-
-also dtrt-indent for better indentation (because without it, I would have no way to automatically organise indentation in python)
-#+begin_src emacs-lisp
-  (use-package dtrt-indent
-    :custom
-    (dtrt-indent-global-mode t))
-#+end_src
-
-and then finally, yasnippet for templates.
-#+begin_src emacs-lisp
-  (use-package yasnippet
-    :custom
-    (yas-snippet-dirs '("~/.emacs.d/snippets"))
-    :hook
-    (prog-mode . yas-minor-mode)
-    (org-mode . yas-minor-mode)
-    :config
-    (yas-reload-all))
-
-  (use-package yasnippet-snippets
-    :demand t
-    :after yasnippet)
-#+end_src
-
 ** bibliography management ft. elfeed
 credit goes to Koustiv Sinha whose [[https://koustuvsinha.com//post/emacs_research_workflow/][blog post]] I used for this.
 
 we first load arxiv-mode, elfeed and elfeed-score
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-bib.el"
   (use-package arxiv-mode
+    :ensure t
     :defer t
     :hook
     (elfeed-search-mode . arxiv-mode))
 
   (use-package elfeed
+    :ensure t
     :defer t
     :hook
     (elfeed-search-mode . elfeed-update)
@@ -2012,16 +2360,16 @@ we first load arxiv-mode, elfeed and elfeed-score
   	  (save-buffer))
   	)))
 
-    (global-set-key (kbd "C-c e a") #'my/elfeed-entry-to-arxiv)
-    (global-set-key (kbd "C-c e s") #'elfeed))
+    (keymap-global-unset "C-c e")
+    (keymap-global-set "C-c e a" #'my/elfeed-entry-to-arxiv)
+    (keymap-global-set "C-c e s" #'elfeed))
 #+end_src
 
 and we configure elfeed-score
-#+begin_src emacs-lisp
-  (use-package elfeed-score
-    
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-bib.el"
+  (use-package elfeed-score   
+    :ensure t :after elfeed
     :defer t
-    :after elfeed
     :hook
     (elfeed-search-mode . elfeed-score-enable)
     :config
@@ -2032,8 +2380,11 @@ and we configure elfeed-score
 ** slack
 now I can do almost everything in emacs
 we load slack and also configure our channels and all that.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-misc.el"
   (use-package slack
+    :ensure t
+    :after alert
+    :defer t
     :bind (("C-c S K" . slack-stop)
   	 ("C-c S c" . slack-select-rooms)
   	 ("C-c S u" . slack-select-unread-rooms)
@@ -2062,8 +2413,7 @@ we load slack and also configure our channels and all that.
   	       (("C-c '" . slack-message-send-from-buffer)))
   	 )
     :hook
-    (emacs-startup . slack-start)
-    :defer t
+    (elpaca-after-init . slack-start)
     :custom
     (slack-extra-subscribed-channels (mapcar 'intern (list "ldi-main" "ldi-graduate" "team-agentic-memory" "ai-server" "help-me" "ml-share" "agentic-memory")))
     (slack-prefer-current-team t)
@@ -2116,29 +2466,6 @@ I also want to receive slack notifications on emacs.
          (concat org-directory "slack.org")
          t))))
 
-  (use-package alert
-    
-    :init
-    (setq alert-default-style 'message)
-    :config
-    (alert-define-style
-     'my/slack-alert
-     :title "org slack alerts"
-     :notifier (lambda (info)
-                 (if (get-buffer "slack.org")
-      		   (with-current-buffer "slack.org"
-      		     (save-buffer))
-      		 (with-current-buffer
-      		     (get-buffer-create (find-file (concat org-directory "slack.org")))
-      		   (save-buffer)))
-      	       (my/slack-notify info)))
-    
-    (add-to-list 'alert-user-configuration
-      	       '(((:category . "slack")) my/slack-alert nil))
-    :hook
-    (org-agenda-mode-hook . (lambda ()
-                              (keymap-local-set "M" 'my/org-agenda-todo-archive))))
-
   (defun my/save-slack ()
     (interactive)
     (save-excursion
@@ -2152,6 +2479,26 @@ I also want to receive slack notifications on emacs.
     (org-agenda-todo 'done)
     (org-agenda-archive)
     (my/save-slack))
+
+  (defun my/slack-setup ()
+    (alert-define-style
+     'my/slack-alert
+     :title "org slack alerts"
+     :notifier (lambda (info)
+                 (if (get-buffer "slack.org")
+                     (with-current-buffer "slack.org"
+                       (save-buffer))
+                   (with-current-buffer
+                       (get-buffer-create (find-file (concat org-directory "slack.org")))
+                     (save-buffer)))
+                 (my/slack-notify info)))
+    
+    (add-to-list 'alert-user-configuration
+                 '(((:category . "slack")) my/slack-alert nil))
+    (add-hook 'org-agenda-mode-hook . (lambda ()
+  				    (keymap-local-set "M" 'my/org-agenda-todo-archive))))
+
+  (add-hook 'slack-mode-hook #'my/slack-setup)
 #+end_src
 
 the chad-dest thing to do is send messages to slack from emacs
@@ -2163,7 +2510,7 @@ the chad-dest thing to do is send messages to slack from emacs
     (save-window-excursion
       (get-buffer (org-md-export-as-markdown nil 'subtree))
       (let* ((slack-md (buffer-string))
-  	   (pyscript (file-truename "~/.emacs.d/configs/convert-org-to-slack.py"))
+  	   (pyscript (file-truename "~/.emacs.d/utils/convert-org-to-slack.py"))
   	   (cmd (format "python %s --md %s"
   			(shell-quote-argument pyscript)
   			(shell-quote-argument slack-md))))
@@ -2185,32 +2532,10 @@ the chad-dest thing to do is send messages to slack from emacs
   (keymap-global-set "C-c S o" #'my/org-to-slack-md)
 #+end_src
 
-** projectile
-for better project management
-#+begin_src emacs-lisp
-  (use-package projectile
-    :init
-    (setq projectile-project-search-path '((file-truename "~/Documents/research/") (file-truename ("~/Documents/toy-projects/"))))
-    :config
-    (projectile-mode t)
-    (setq projectile-completion-system 'default)
-    (setq projectile-sort-order 'recentf)
-    (setq projectile-indexing-method 'alien)
-    (setq projectile-enable-caching t)
-
-    (setq projectile-frecency-file (expand-file-name "projectile-frecency.eld" (file-truename "~/.emacs.d/")))
-    
-    (defun my/projectile-project-find-fn (dir)
-      (when-let ((root (projectile-project-root dir)))
-        (cons 'transient root)))
-    (add-to-list 'project-find-functions #'my/projectile-project-find-fn)
-    (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-    (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map))
-#+end_src
-
 ** zotero
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle lisp/lazemacs-bib.el
   (use-package zotra
+    :ensure t
     :defer t
     :config
     (setq zotra-backend 'zotra-server)
@@ -2227,4 +2552,175 @@ for better project management
   	   (append zotra-after-get-bibtex-entry-hook
   		   '(zotra-download-attachment-for-current-entry))))
         (zotra-add-entry url))))
+#+end_src
+** dashboard + some customisation
+#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-theme.el"
+I like to use dashboard with org-agenda. also, I like to sort out my daily tasks in a =daily.org= file.
+
+so first and foremost, because I am chronically lazy, I like my =daily.org= to start up already with the day's entry. that said, I like to configure a time that triggers the start of a new entry.
+#+begin_src emacs-lisp 
+  (defun my/convert-time (&optional DATE TIME ZONE)
+    (encode-time
+     (parse-time-string
+      (format "%sT%s%s" (format-time-string "%Y-%m-%d" DATE) TIME ZONE))))
+
+  (defun my/check-time-is-new-day ()
+    (let ((is_night (time-less-p nil (my/convert-time nil "10:00:00" "+09"))))
+      (if (not (member (format-time-string "%A") '("Saturday" "Sunday")))
+  	(and (not is_night) (time-less-p nil (my/convert-time nil "15:00:00" "+09")))
+        (not is_night))))
+#+end_src
+
+now for our =daily.org=
+#+begin_src emacs-lisp 
+  (defun my/goto-or-create-timestamp-header ()
+    (interactive)
+    (with-current-buffer
+        (set-buffer (current-buffer))
+      (when (my/check-time-is-new-day)
+        (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
+  	     (pos (org-find-exact-headline-in-buffer timestamp)))
+  	(if (not pos)
+  	    (progn (goto-char (buffer-size))
+  		   (org-insert-heading nil nil t)
+  		   (insert timestamp)
+  		   (goto-char (buffer-size))
+  		   (org-capture 0 "d"))
+  	  (goto-char pos))
+  	(save-buffer)))))
+
+  (defun my/open-org-daily ()
+    (interactive)
+    (set-buffer
+     (get-buffer (find-file (concat org-directory "daily.org"))))
+    (when (my/check-time-is-new-day)
+      (let* ((timestamp (format-time-string "[%Y-%m-%d %a]"))
+  	   (pos (org-find-exact-headline-in-buffer timestamp)))
+        (unless pos (progn
+  		    (goto-char (buffer-size))
+  		    (org-insert-heading nil nil t)
+  		    (insert timestamp)
+  		    (goto-char (buffer-size))
+  		    (org-capture 0 "d")))))
+    (goto-char (buffer-size))
+    (current-buffer))
+
+  (keymap-global-set "C-c f d" #'my/open-org-daily)
+#+end_src
+
+then for org-agenda:
+#+begin_src emacs-lisp 
+  (defun my/open-org-agenda ()
+    (interactive)
+    (split-window-right)
+    (org-agenda nil "n")
+    (current-buffer))
+
+  (defun my/kill-agenda-window ()
+    (let ((agenda-win (get-buffer-window org-agenda-buffer-name)))
+      (when agenda-win
+        (delete-window agenda-win))))
+#+end_src
+
+and then dashboard:
+#+begin_src emacs-lisp
+  (defun my/window-setup ()
+    (interactive)
+    (if (and (fboundp 'server-running-p) 
+             (not (server-running-p)))
+        (server-start))
+    (my/open-org-agenda)
+    (dired-sidebar-toggle-sidebar org-directory)
+    (select-window (get-buffer-window dashboard-buffer-name))
+    (add-hook 'demap-minimap-set-window-hook #'my/kill-agenda-window)
+    (current-buffer))
+
+  (use-package dashboard 
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . dashboard-setup-startup-hook)
+    :config
+    (add-hook 'dashboard-after-initialize-hook #'my/window-setup)
+    :custom
+    (dashboard-banner-logo-title "the dashboard")
+    (dashboard-startup-banner (expand-file-name "banner.txt" user-emacs-directory))
+    (dashboard-center-content t)
+    (dashbaord-vertically-center-content t)
+    (dashboard-items '((recents . 5)
+                       (bookmarks . 5)
+                       (projects . 5)))
+    (dashboard-navigation-cycle t)
+    (dashboard-display-icons-p t)
+    (dashboard-icon-type 'nerd-icons)
+    (dashboard-set-heading-icons t)
+    (dashboard-set-file-icons t))
+#+end_src
+** provide
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
+  (provide 'lazemacs-core)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-comp.el"
+  (provide 'lazemacs-comp)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-prelude.el"
+  (provide 'lazemacs-prelude)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-style.el"
+  (provide 'lazemacs-style)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-buffers.el"
+  (provide 'lazemacs-buffers)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
+  (provide 'lazemacs-completion)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-terminal.el"
+  (provide 'lazemacs-terminal)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-keybinds.el"
+  (provide 'lazemacs-keybinds)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-help.el"
+  (provide 'lazemacs-help)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-windows.el"
+  (provide 'lazemacs-windows)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-secrets.el"
+  (provide 'lazemacs-secrets)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-projects.el"
+  (provide 'lazemacs-projects)
+#+end_src
+
+#+begin_src emacs-lisp  :tangle "lisp/lazemacs-ide.el"
+  (provide 'lazemacs-ide)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el"
+  (provide 'lazemacs-org)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-bib.el"
+  (provide 'lazemacs-bib)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-misc.el"
+  (provide 'lazemacs-misc)
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-theme.el"
+  (provide 'lazemacs-theme)
 #+end_src
