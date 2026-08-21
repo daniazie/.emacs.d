@@ -58,7 +58,7 @@
   (keymap-global-set "C-x 4 s" #'window-swap-states) ;; I also want to be able to swap window states with a keybind
   (keymap-global-set "C-x 5 n" #'make-frame) ;; And I want to be able make a new frame with just the scratch buffer
 
-  (add-hook 'dired-mode #'dired-omit-mode) ;; I don't need to see all the .*~ files when I open up dired
+  (add-hook 'dired-mode (lambda () (dired-omit-mode))) ;; I don't need to see all the .*~ files when I open up dired
 
   (add-to-list 'safe-local-variable-directories
                (file-truename "~/Documents/research/agentic-memory/"))
@@ -437,8 +437,7 @@
   (add-hook 'embark-collect-mode-hook #'+embark-live-vertico))
 
 (use-package embark-consult
-  :ensure t
-  :defer t
+  :ensure (:autoloads t)
   :after (embark consult))
 
 (use-package transient
@@ -878,7 +877,7 @@
   (treemacs-mode . (lambda () (dired-sidebar-hide-sidebar)))
   (treemacs-mode . (lambda () (golden-ratio-mode 0)))
   :custom
-  (treemacs-display-in-side-window nil)
+  (treemacs-display-in-side-window nil) ;; I want to be able to split the window
   :config
   (if (display-graphic-p)
       (treemacs-load-theme "nerd-icons"))
@@ -907,6 +906,14 @@
   :custom
   (demap-minimap-minimum-wdith 30)
   (demap-minimap-window-side 'right))
+
+(defun my/demap-close (window)
+  (unless (ht-equal-p
+            (treemacs-current-workspace)
+            (treemacs-find-workspace-from-path (buffer-file-path (window-buffer window)))))
+      (demap-close))
+
+(add-hook 'window-buffer-change-functions #'my/demap-close)
 
 (use-package treesit-auto
   :ensure t
