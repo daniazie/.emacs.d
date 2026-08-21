@@ -1,3 +1,5 @@
+;;; lazemacs-comp.el --- compilation-related libraries -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package no-littering
   :ensure t
   :demand t

@@ -1,3 +1,5 @@
+;;; lazemacs-terminal.el --- emacs-as-a-tui and terminal in emacs -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package clipetty
   :ensure t    
   :defer t

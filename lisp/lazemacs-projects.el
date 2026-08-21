@@ -1,3 +1,5 @@
+;;; lazemacs-projects.el --- project management -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package projectile
   :ensure t
   :defer t

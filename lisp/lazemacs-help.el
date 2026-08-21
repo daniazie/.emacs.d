@@ -1,3 +1,5 @@
+;;; lazemacs-help.el --- help and documentation -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package helpful
   :ensure t    
   :defer t

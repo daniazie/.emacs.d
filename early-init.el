@@ -1,4 +1,4 @@
-;;; -*- lexical-binding: t; -*-
+;;; early-init.el --- early initialisation -*- lexical-binding: t; no-byte-compile: t; -*-
 
 (setq package-enable-at-startup nil)
 (setq load-prefer-newer t)
@@ -9,6 +9,7 @@
 ;; make native compilation silent
 (when (native-comp-available-p)
   (setq native-comp-async-report-warnings-errors 'silent))
+(setq native-comp-always-compile t)
 (setq bytecomp--inhibit-lexical-cookie-warning t)
 (setq inhibit-compacting-font-caches t)
 

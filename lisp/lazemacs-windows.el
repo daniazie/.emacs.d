@@ -1,3 +1,5 @@
+;;; lazemacs-windows.el --- window management -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package ace-window
   :ensure t
   :defer t

@@ -1,3 +1,5 @@
+;;; lazemacs-secrets.el --- secrets management -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package plstore
   :ensure nil
   :config

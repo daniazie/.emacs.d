@@ -10,12 +10,12 @@ Following [[gh:protesilaos][protesilaos]]'s configuration, instead of calling =o
 #+end_src
 
 #+RESULTS:
-| /home/dania/.emacs.d/init.el | /home/dania/.emacs.d/early-init.el |
+| /home/dania/.emacs.d/lisp/lazemacs-theme.el | /home/dania/.emacs.d/lisp/lazemacs-misc.el | /home/dania/.emacs.d/lisp/lazemacs-bib.el | /home/dania/.emacs.d/lisp/lazemacs-org.el | /home/dania/.emacs.d/lisp/lazemacs-ide.el | /home/dania/.emacs.d/lisp/lazemacs-projects.el | /home/dania/.emacs.d/lisp/lazemacs-secrets.el | /home/dania/.emacs.d/lisp/lazemacs-windows.el | /home/dania/.emacs.d/lisp/lazemacs-help.el | /home/dania/.emacs.d/lisp/lazemacs-keybinds.el | /home/dania/.emacs.d/lisp/lazemacs-terminal.el | /home/dania/.emacs.d/lisp/lazemacs-completion.el | /home/dania/.emacs.d/lisp/lazemacs-buffers.el | /home/dania/.emacs.d/lisp/lazemacs-style.el | /home/dania/.emacs.d/lisp/lazemacs-comp.el | /home/dania/.emacs.d/lisp/lazemacs-core.el | /home/dania/.emacs.d/init.el | /home/dania/.emacs.d/early-init.el |
 
 * early initialisation
 Here, we write our =early-init.el= configuration. For some reason, emacs still uses legacy behaviour w.r.t the init file, so we're going to have to reset the =user-init-file= variable for convenience's sake
 #+begin_src emacs-lisp :comments no :tangle "early-init.el"
-  ;;; -*- lexical-binding: t; -*-
+  ;;; early-init.el --- early initialisation -*- lexical-binding: t; no-byte-compile: t; -*-
 #+end_src
 
 #+begin_src emacs-lisp :tangle "early-init.el" :exports code
@@ -28,6 +28,7 @@ Here, we write our =early-init.el= configuration. For some reason, emacs still u
   ;; make native compilation silent
   (when (native-comp-available-p)
     (setq native-comp-async-report-warnings-errors 'silent))
+  (setq native-comp-always-compile t)
   (setq bytecomp--inhibit-lexical-cookie-warning t)
   (setq inhibit-compacting-font-caches t)
 
@@ -59,7 +60,7 @@ Here, we write our =early-init.el= configuration. For some reason, emacs still u
 Here, we write our configuration for =init.el=. Our first order of business: custom set variables and garbage collection.
 
 #+begin_src emacs-lisp :comments no
-  ;;; -*- lexical-binding: t; -*-
+  ;;; init.el --- initialise emacs and packages -*- lexical-binding: t; no-byte-compile: t; -*-
 #+end_src
 
 #+begin_src emacs-lisp
@@ -82,7 +83,6 @@ Here, we write our configuration for =init.el=. Our first order of business: cus
 
   (require 'lazemacs-core)
   (require 'lazemacs-comp)
-  (require 'lazemacs-prelude)
   (require 'lazemacs-style)
   (require 'lazemacs-buffers)
   (require 'lazemacs-completion)
@@ -100,7 +100,71 @@ Here, we write our configuration for =init.el=. Our first order of business: cus
 #+end_src
 
 * packages
-#+PROPERTY: header-args:emacs-lisp
+** prelude
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
+  ;;; lazemacs-core.el --- package management and initialisation -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-comp.el"
+  ;;; lazemacs-comp.el --- compilation-related libraries -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-style.el"
+  ;;; lazemacs-style.el --- on aesthetics -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-buffers.el"
+  ;;; lazemacs-buffers.el --- buffer management -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
+  ;;; lazemacs-completion.el --- completions -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-terminal.el"
+  ;;; lazemacs-terminal.el --- emacs-as-a-tui and terminal in emacs -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-keybinds.el"
+  ;;; lazemacs-keybinds.el --- keybindings -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-help.el"
+  ;;; lazemacs-help.el --- help and documentation -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-windows.el"
+  ;;; lazemacs-windows.el --- window management -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-secrets.el"
+  ;;; lazemacs-secrets.el --- secrets management -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-projects.el"
+  ;;; lazemacs-projects.el --- project management -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp  :tangle "lisp/lazemacs-ide.el"
+  ;;; lazemacs-ide.el --- emacs-as-an-ide -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el"
+  ;;; lazemacs-org.el --- org-mode -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-bib.el"
+  ;;; lazemacs-bib.el --- bibliography management -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-misc.el"
+  ;;; lazemacs-misc.el --- miscellaneous -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-theme.el"
+  ;;; lazemacs-theme.el --- theme and dashboard -*- lexical-binding: t; no-byte-compile: t; -*-
+#+end_src
+
 ** setup elpaca for package management
 I have since switched from straight to elpaca (because it's much faster).
 #+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
@@ -190,9 +254,8 @@ using compile-angel to speed emacs up.
     (push "/early-init.el" compile-angel-excluded-path-suffixes))
 #+end_src
 ** emacs configuration
-#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-prelude.el"
 this is where I setup my emacs theme and also some keybindings I use frequently
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
   (use-package emacs
     :ensure nil
     :demand t
@@ -218,8 +281,8 @@ this is where I setup my emacs theme and also some keybindings I use frequently
 
     (add-hook 'dired-mode (lambda () (dired-omit-mode))) ;; I don't need to see all the .*~ files when I open up dired
 
-    (add-to-list 'safe-local-variable-directories
-                 (file-truename "~/Documents/research/agentic-memory/"))
+    ;; (add-to-list 'safe-local-variable-directories
+    ;;              (file-truename "~/Documents/research/agentic-memory/"))
     
     :custom
     (enable-recursive-minibuffers t)
@@ -242,7 +305,7 @@ this is where I setup my emacs theme and also some keybindings I use frequently
 #+end_src
 *** inhibit mouse
 I'm trying to get in the habit of exclusively using my keyboard
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
   (use-package inhibit-mouse
     :ensure t
     :defer t
@@ -251,7 +314,7 @@ I'm trying to get in the habit of exclusively using my keyboard
 #+end_src
 
 *** free-keys
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
   (use-package free-keys
     :ensure t
     :defer t
@@ -261,7 +324,7 @@ I'm trying to get in the habit of exclusively using my keyboard
 #+end_src
 *** multilingual input
 I personally like to keep my =toggle-input-method= keybinding the same as the system setting (which, out of habit, I had it configured to =s-<space>=)
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
   (keymap-global-unset "S-SPC")
   (keymap-global-set "s-SPC" #'toggle-input-method)
 
@@ -275,7 +338,7 @@ I personally like to keep my =toggle-input-method= keybinding the same as the sy
 #+end_src
 
 ** alert
-#+begin_src emacs-lisp :tangle "lisp/lazemacs-prelude.el"
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
   (use-package alert
     :ensure (:wait t)
     :defer t
@@ -320,7 +383,7 @@ I use doom-themes and doom-modeline
 
 ** dired-sidebar
 I like to have a sidebar for my directories for simplicity's sake.
-#+begin_src emacs-lisp :tangle "lisp/lazemacs-prelude.el"
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
   (use-package dired-subtree
     :ensure t
     :defer t
@@ -359,7 +422,7 @@ ibuffer is much more convenient than the built-in list-buffers
 
 ** shell
 I want emacs to detect my shell paths
-#+begin_src emacs-lisp :tangle "lisp/lazemacs-prelude.el"
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-core.el"
   (when (memq window-system '(mac ns x))
     (use-package exec-path-from-shell
       :ensure t
@@ -387,10 +450,9 @@ I don't think I would've lasted as long as I have if it were not for which-key
 #+end_src
 
 ** vertico, consult, orderless, marginalia, and embark
-#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-completion.el"
 emacs' holy trinity (vertico, orderless, marginalia) plus two
 *** vertico
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
   ;; Enable Vertico.
   (use-package vertico
     :ensure t
@@ -486,7 +548,7 @@ emacs' holy trinity (vertico, orderless, marginalia) plus two
 #+end_src
 
 I also use vertico-posframe (mostly for the aesthetics)
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
     (use-package vertico-posframe
       :ensure t
       :after (vertico posframe)
@@ -564,7 +626,7 @@ I also use vertico-posframe (mostly for the aesthetics)
 #+end_src
 
 also, savehist-mode to access my recent (and generally more commandly used) commands and completions.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
   ;; Persist history over Emacs restarts. Vertico sorts by history position.
   (use-package savehist
     :ensure nil
@@ -576,7 +638,7 @@ also, savehist-mode to access my recent (and generally more commandly used) comm
 #+end_src
 
 *** orderless
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp  :tangle "lisp/lazemacs-completion.el"
   (use-package orderless
     :ensure t
     :defer t
@@ -588,7 +650,7 @@ also, savehist-mode to access my recent (and generally more commandly used) comm
 #+end_src
 
 *** marginalia
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp  :tangle "lisp/lazemacs-completion.el"
   (use-package marginalia
     :ensure t
     :defer t
@@ -606,7 +668,7 @@ also, savehist-mode to access my recent (and generally more commandly used) comm
 #+end_src
 
 *** consult
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
   ;; Example configuration for Consult
   (use-package consult
     ;; Replace bindings. Lazily loaded by `use-package'.
@@ -707,7 +769,7 @@ also, savehist-mode to access my recent (and generally more commandly used) comm
   )
 #+end_src
 *** embark
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp  :tangle "lisp/lazemacs-completion.el"
   (use-package embark
     :ensure t
     :defer t
@@ -745,7 +807,7 @@ also, savehist-mode to access my recent (and generally more commandly used) comm
 
 *** transient
 we'll also throw in transient
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
   (use-package transient
     :defer t
     :ensure t)
@@ -759,10 +821,9 @@ we'll also throw in transient
 #+end_src
 
 ** on completion-at-point
-#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-completion.el"
 here we configure cape and corfu (but not in that order)
 *** corfu
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
   (use-package corfu
     :ensure t
     :defer t
@@ -832,17 +893,18 @@ here we configure cape and corfu (but not in that order)
     ;; add hook only after corfu has been loaded
     (add-hook 'global-corfu-mode (lambda () (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))))
 
-  (use-package corfu-terminal
-    :ensure t
-    :after corfu
-    :defer t
-    :if (or (featurep 'tty-child-frames) (display-graphic-p))
-    :hook
-    (global-corfu-mode . corfu-terminal-mode))
+  (when (< (string-to-number emacs-version) 31.0)
+    (use-package corfu-terminal
+      :ensure t
+      :after corfu
+      :defer t
+      :if (or (featurep 'tty-child-frames) (display-graphic-p))
+      :hook
+      (global-corfu-mode . corfu-terminal-mode)))
 #+end_src
 
 *** cape
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
   (use-package cape
     :ensure t
     :defer t
@@ -861,8 +923,7 @@ here we configure cape and corfu (but not in that order)
     (completion-at-point-functions . cape-history))
 #+end_src
 ** prescient
-#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-completion.el"
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-completion.el"
   (use-package prescient
     :defer t
     :ensure t)
@@ -953,6 +1014,21 @@ here we configure cape and corfu (but not in that order)
     (bufferfile-delete-switch-to 'parent-directory))
 #+end_src
 
+** avy
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-buffers.el"
+(use-package avy
+:ensure t
+:defer t
+:hook
+(elpaca-init-hook . avy-setup-default)
+:bind
+(("C-:" . avy-goto-char)
+("C-'" . avy-goto-char-2)
+("M-g f" . avy-goto-line)
+("M-g w" . avy-goto-word-1)
+("M-g e" . avy-goto-word-0)
+("C-c C-j" . avy-resume)))
+#+end_src
 ** emacs in the terminal
 sometimes, I like to use emacs as a tui, so we configure as below.
 
@@ -1000,9 +1076,8 @@ as in, terminal in emacs, not emacs in the terminal
 #+end_src
 
 ** keybindings
-#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-keybinds.el"
 I like to be able to pull up this file whenever I need to so first things first:
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-keybinds.el" 
   (defun my/open-config-file ()
     (interactive)
     (get-buffer-create (find-file (expand-file-name "config.org" "~/.emacs.d/"))))
@@ -1011,7 +1086,7 @@ I like to be able to pull up this file whenever I need to so first things first:
 #+end_src
 
 also, more often than not, when I split a window, I also want the new window as my active window so I instead bind the split window functions to a custom function that also moves my pointer to the new window automatically:
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp  :tangle "lisp/lazemacs-keybinds.el"
   (defun my/split-window-left ()
     (interactive)
     (select-window (split-window-right)))
@@ -1025,7 +1100,7 @@ also, more often than not, when I split a window, I also want the new window as 
 #+end_src
 *** rsi begone
 first, we configure vertigo
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-keybinds.el"
   (use-package vertigo
     :ensure t
     :defer t
@@ -1038,7 +1113,7 @@ first, we configure vertigo
 #+end_src
 
 also, for whatever reason, non-latin utf-8-based input methods don't necessarily translate properly into qwerty, so I use a hack so that I don't have to manually change my input method every time I exit insert mode.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-keybinds.el"
   (defun my/meow-deactivate-input-method ()
     (interactive)
     (when meow-current-input-method
@@ -1050,7 +1125,7 @@ also, for whatever reason, non-latin utf-8-based input methods don't necessarily
       (activate-input-method meow-current-input-method)))
 #+end_src
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-keybinds.el"
   (use-package meow
     :ensure t
     :demand t
@@ -1265,119 +1340,10 @@ I like to have my working space automatically resized
     (elpaca-after-init . golden-ratio-mode))
 #+end_src
 ** emacs as an ide
-#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-ide.el"
 first, we configure the programming languages we want to use. I primarily use python but sometimes I use docker as well.
-*** python
-I use mamba as my primary python environment.
-#+begin_src emacs-lisp 
-  (use-package conda
-    :ensure t
-    :defer t
-    :hook
-    (elpaca-after-init . conda-env-autoactivate-mode)
-    :config
-    (conda-env-initialize-interactive-shells)
-    (conda-env-initialize-eshell)
-    (conda-mode-line-setup))
-#+end_src
-
-we configure emacs' python-mode.
-#+begin_src emacs-lisp
-  (use-package python
-    :defer t
-    :ensure (:wait t)
-    :mode
-    (("\\.py\\'" . python-ts-mode)
-     ("\\.pyi\\'" . python-ts-mode)
-     ("\\.pyw\\'" . python-ts-mode))
-    :hook
-    (conda-env-autoactivate-mode . (lambda ()
-                                     (setq python-shell-exec-path conda-env-current-path)))
-    (python-mode . lsp-deferred)
-    (python-ts-mode . lsp-deferred)
-    (python-mode . subword-mode)
-    (python-ts-mode . subword-mode)
-    (python-ts-mode . python-mode)
-    :init
-    (setq python-indent-offset 4)
-    (setq PYTHONPATH (file-truename "~/miniforge3/bin/python"))
-    (setenv "PYTHONPATH" PYTHONPATH)
-    (setq python-shell-interpreter PYTHONPATH)
-    (setq python-interpreter PYTHONPATH)
-    
-    (defun my/python-setup ()
-      (define-derived-mode python-mode prog-mode "Python"
-        ...
-        (cond
-         ;; Tree-sitter.
-         ((treesit-ready-p 'python)
-          (treesit-parser-create 'python)
-          (setq-local treesit-font-lock-settings python--treesit-settings)
-          (setq-local treesit-font-lock-feature-list
-                      '((comment string function-name)
-                        (class-name keyword builtin)
-                        (string-interpolation decorator)))
-          (treesit-major-mode-setup))
-         (t
-          ;; No tree-sitter, do nothing or fallback to another mode.
-          ...))))
-
-    (add-hook 'elpaca-after-init-hook #'my/python-setup))
-
-  (use-package anaconda-mode
-    :ensure t
-    :defer t
-    :hook
-    (python-mode . anaconda-mode)
-    (python-ts-mode . anaconda-mode)
-    (python-mode . anaconda-eldoc-mode)
-    (python-ts-mode . anaconda-eldoc-mode))
-#+end_src
-
-tbh, I never really cared for jupyter lab so we use =code-cells=.
-#+begin_src emacs-lisp
-  (use-package code-cells
-    :ensure t
-    :after python
-    :defer t
-    :mode
-    ("\\.ipynb\\'" . code-cells-mode)
-    :hook
-    (code-cells-mode . run-python)
-    :bind
-    (:map code-cells-mode-map
-          ("C-c C-c" . code-cells-eval)
-          ("M-p" . code-cells-backward-cell)
-          ("M-n" . code-cells-forward-cell)
-  	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
-    :config
-    (add-to-list 'code-cells-convert-ipynb-style '("jupytext" "--to" "py:percent"))
-    (defun my/code-cells-new-cell ()
-      (interactive)
-      (newline 2)
-      (code-cells-forward-cell)
-      (insert "# %%")
-      (newline))
-
-    (defun my/code-cells-eval-and-step ()
-      (interactive)
-      (call-interactively #'code-cells-eval-and-step)
-      (when (= (point) (point-max))
-        (my/code-cells-new-cell)))
-    
-    (defun my/code-cells-write-ipynb (file)
-      (when (string= (file-name-extension file) "ipynb")
-          (code-cells-write-ipynb file)))
-    
-    (add-hook 'treemacs-create-file-functions #'my/code-cells-write-ipynb)
-    
-    (keymap-set code-cells-mode-map "C-c C-n" #'my/code-cells-new-cell)
-    (keymap-set code-cells-mode-map "C-c C-s" #'my/code-cells-eval-and-step))
-#+end_src
-
 *** git
 magit is probably one of the best packages there is.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package pinentry
     :ensure t
     :defer t
@@ -1436,9 +1402,118 @@ magit is probably one of the best packages there is.
     :ensure t)
 #+end_src
 
+*** python
+I use mamba as my primary python environment.
+#+begin_src emacs-lisp  :tangle "lisp/lazemacs-ide.el"
+  (use-package conda
+    :ensure t
+    :defer t
+    :hook
+    (elpaca-after-init . conda-env-autoactivate-mode)
+    (elpaca-after-init . (lambda () (conda-env-activate "base")))
+    :config
+    (conda-env-initialize-interactive-shells)
+    (conda-env-initialize-eshell)
+    (conda-mode-line-setup))
+#+end_src
+
+we configure emacs' python-mode.
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
+  (use-package python
+    :defer t
+    :ensure (:wait t)
+    :mode
+    (("\\.py\\'" . python-ts-mode)
+     ("\\.pyi\\'" . python-ts-mode)
+     ("\\.pyw\\'" . python-ts-mode))
+    :hook
+    (conda-env-autoactivate-mode . (lambda ()
+                                     (setq python-shell-exec-path conda-env-current-path)))
+    (python-mode . lsp-deferred)
+    (python-ts-mode . lsp-deferred)
+    (python-mode . subword-mode)
+    (python-ts-mode . subword-mode)
+    (python-ts-mode . python-mode)
+    :init
+    (setq python-indent-offset 4)
+    (setq PYTHONPATH (file-truename "~/miniforge3/bin/python"))
+    (setenv "PYTHONPATH" PYTHONPATH)
+    (setq python-shell-interpreter PYTHONPATH)
+    (setq python-interpreter PYTHONPATH)
+    
+    (defun my/python-setup ()
+      (define-derived-mode python-mode prog-mode "Python"
+        ...
+        (cond
+         ;; Tree-sitter.
+         ((treesit-ready-p 'python)
+          (treesit-parser-create 'python)
+          (setq-local treesit-font-lock-settings python--treesit-settings)
+          (setq-local treesit-font-lock-feature-list
+                      '((comment string function-name)
+                        (class-name keyword builtin)
+                        (string-interpolation decorator)))
+          (treesit-major-mode-setup))
+         (t
+          ;; No tree-sitter, do nothing or fallback to another mode.
+          ...))))
+
+    (add-hook 'elpaca-after-init-hook #'my/python-setup))
+
+  (use-package anaconda-mode
+    :ensure t
+    :defer t
+    :hook
+    (python-mode . anaconda-mode)
+    (python-ts-mode . anaconda-mode)
+    (python-mode . anaconda-eldoc-mode)
+    (python-ts-mode . anaconda-eldoc-mode))
+#+end_src
+
+tbh, I never really cared for jupyter lab so we use =code-cells=.
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
+  (use-package code-cells
+    :ensure t
+    :after python
+    :defer t
+    :mode
+    ("\\.ipynb\\'" . code-cells-mode)
+    :hook
+    (code-cells-mode . run-python)
+    :bind
+    (:map code-cells-mode-map
+          ("C-c C-c" . code-cells-eval)
+          ("M-p" . code-cells-backward-cell)
+          ("M-n" . code-cells-forward-cell)
+  	("<remap> <jupyter-eval-line-or-region>" . code-cells-eval))
+    :config
+    (add-to-list 'code-cells-convert-ipynb-style '("jupytext" "--to" "py:percent"))
+    (defun my/code-cells-new-cell ()
+      (interactive)
+      (newline 2)
+      (code-cells-forward-cell)
+      (insert "# %%")
+      (newline))
+
+    (defun my/code-cells-eval-and-step ()
+      (interactive)
+      (call-interactively #'code-cells-eval-and-step)
+      (when (= (point) (point-max))
+        (my/code-cells-new-cell)))
+    
+    (defun my/code-cells-write-ipynb (file)
+      (when (string= (file-name-extension file) "ipynb")
+          (code-cells-write-ipynb file)))
+    
+    (add-hook 'treemacs-create-file-functions #'my/code-cells-write-ipynb)
+    
+    (keymap-set code-cells-mode-map "C-c C-n" #'my/code-cells-new-cell)
+    (keymap-set code-cells-mode-map "C-c C-s" #'my/code-cells-eval-and-step))
+#+end_src
+
 *** treemacs
 treemacs for a treeview of our working directory
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package treemacs-nerd-icons
     :ensure t
     :after nerd-icons
@@ -1482,9 +1557,50 @@ treemacs for a treeview of our working directory
     :hook
     (treemacs-mode . treemacs-magit-mode))
 #+end_src
+*** language server protocol
+I use lsp-mode for lsp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
+  (use-package lsp-mode
+    :ensure t
+    :defer t
+    :init
+    (setq lsp-keymap-prefix "C-c l")
+    :hook
+    (prog-mode . lsp-deferred)
+    (sh-mode . lsp-deferred)
+    (bash-ts-mode . lsp-deferred)
+    (lsp-mode . lsp-enable-which-key-integration)
+    (org-src-mode . lsp-deferred)
+    :commands lsp)
+
+  (use-package lsp-ui
+    :ensure t
+    :after lsp-mode
+    :defer t
+    :commands
+    lsp-ui-mode
+    :hook
+    (lsp-mode . lsp-ui-mode)
+    :config
+    (lsp-ui-doc-mode 1))
+
+  (use-package lsp-treemacs
+    :ensure t
+    :defer t
+    :commands
+    lsp-treemacs-errors-list
+    :hook
+    (lsp-mode . lsp-treemacs-sync-mode))
+
+  (use-package consult-lsp
+    :ensure t
+    :defer t
+    :after (consult lsp-mode))
+#+end_src
+
 *** demap
 a minimap for our code
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package demap
     :ensure (:autoloads t)
     :bind
@@ -1503,7 +1619,7 @@ a minimap for our code
 #+end_src
 *** tree-sitter
 the most important thing is tree-sitter.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package treesit-auto
     :ensure t
     :defer t
@@ -1555,7 +1671,7 @@ the most important thing is tree-sitter.
 
 *** docker
 for the rare occasion I do use docker:
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp  :tangle "lisp/lazemacs-ide.el"
   (use-package dockerfile-ts-mode
     :ensure nil
     :defer t
@@ -1567,7 +1683,7 @@ for the rare occasion I do use docker:
 #+end_src
 *** typescript and javascript
 I rarely use these two but when I do.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package typescript-ts-mode
     :ensure nil
     :defer t
@@ -1602,7 +1718,7 @@ I rarely use these two but when I do.
 #+end_src
 
 *** json
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package json-ts-mode
     :ensure nil
     :defer t
@@ -1632,50 +1748,9 @@ I rarely use these two but when I do.
       "molds/experiments.el")) ;; TODO this is relevant only if you have private molds
     (me-setup-molds))
 #+end_src
-*** language server protocol
-I use lsp-mode for lsp
-#+begin_src emacs-lisp
-  (use-package lsp-mode
-    :ensure t
-    :defer t
-    :init
-    (setq lsp-keymap-prefix "C-c l")
-    :hook
-    (prog-mode . lsp-deferred)
-    (sh-mode . lsp-deferred)
-    (bash-ts-mode . lsp-deferred)
-    (lsp-mode . lsp-enable-which-key-integration)
-    (org-src-mode . lsp-deferred)
-    :commands lsp)
-
-  (use-package lsp-ui
-    :ensure t
-    :after lsp-mode
-    :defer t
-    :commands
-    lsp-ui-mode
-    :hook
-    (lsp-mode . lsp-ui-mode)
-    :config
-    (lsp-ui-doc-mode 1))
-
-  (use-package lsp-treemacs
-    :ensure t
-    :defer t
-    :commands
-    lsp-treemacs-errors-list
-    :hook
-    (lsp-mode . lsp-treemacs-sync-mode))
-
-  (use-package consult-lsp
-    :ensure t
-    :defer t
-    :after (consult lsp-mode))
-#+end_src
-
 *** misc-ish
 meow pt. 2 and rainbow delimiters
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package meow-tree-sitter
     :ensure t
     :defer t
@@ -1693,7 +1768,7 @@ meow pt. 2 and rainbow delimiters
 #+end_src
 
 I like to use undo-tree (and you will see why I put this under the ide section).
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package undo-tree
     :ensure t
     :defer t
@@ -1736,7 +1811,7 @@ I like to use undo-tree (and you will see why I put this under the ide section).
 #+end_src
 
 I like to use flycheck for on-the-fly syntax checking.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package flycheck
     :ensure t
     :defer t
@@ -1773,7 +1848,7 @@ I like to use flycheck for on-the-fly syntax checking.
 #+end_src
 
 and also eldoc and eldoc-box
- #+begin_src emacs-lisp
+ #+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
    (use-package eldoc-box
      :ensure t
      :defer t
@@ -1796,7 +1871,7 @@ and also eldoc and eldoc-box
 
 as a way to improve my code writing, I use codemetrics to evaluate my code complexity (with the aim of reducing the complexity)
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package codemetrics
     :defer t
     :ensure (codemetrics :host github :repo "jcs-elpa/codemetrics")
@@ -1805,7 +1880,7 @@ as a way to improve my code writing, I use codemetrics to evaluate my code compl
 #+end_src
 
 I also like to use combobulate to check my code structure.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package combobulate
     :defer t
     :ensure (combobulate :host github :repo "mickeynp/combobulate")
@@ -1816,7 +1891,7 @@ I also like to use combobulate to check my code structure.
 #+end_src
 
 also dtrt-indent for better indentation (because without it, I would have no way to automatically organise indentation in python)
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package dtrt-indent
     :ensure t
     :defer t
@@ -1836,7 +1911,7 @@ also dtrt-indent for better indentation (because without it, I would have no way
 #+end_src
 
 and then finally, yasnippet for templates.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-ide.el"
   (use-package yasnippet
     :ensure t
     :defer t
@@ -1863,9 +1938,8 @@ and then finally, yasnippet for templates.
 #+end_src
 
 ** org-mode
-#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-org.el"
 now let's configure org mode
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
   (use-package org
     :ensure (:wait t)
     :defer nil
@@ -1933,7 +2007,7 @@ now let's configure org mode
 #+end_src
 
 then, we make org mode aesthetically pleasing.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
   ;; org-ibullets for nice-looking bullets
   (use-package org-ibullets
     :defer t
@@ -1998,7 +2072,7 @@ then, we make org mode aesthetically pleasing.
 *** org-links
 I have four custom links (three for repo-type sites and one for citations).
 1. github
-   #+begin_src emacs-lisp 
+   #+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
      (defun my/gh-open (link _)
        (browse-url (my/gh-expand-link link)))
 
@@ -2071,7 +2145,7 @@ I have four custom links (three for repo-type sites and one for citations).
    #+end_src
    
 2. huggingface
-   #+begin_src emacs-lisp 
+   #+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
      (defun hf-open (repo &optional repo-type)
        (interactive
         (list (completing-read "Choose repo type: " '("model" "dataset"))))
@@ -2104,7 +2178,7 @@ I have four custom links (three for repo-type sites and one for citations).
    #+end_src
 
 3. other git-based repos
-   #+begin_src emacs-lisp 
+   #+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
       (defun my/repo-open (link _)
         (browse-url (my/repo-expand-link link)))
 
@@ -2165,7 +2239,7 @@ I have four custom links (three for repo-type sites and one for citations).
    #+end_src
    
 4. citations
-   #+begin_src emacs-lisp 
+   #+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
      (defun my/ref-link--open-link (link _)
        (org-link-open-from-string link))
 
@@ -2199,7 +2273,7 @@ I have four custom links (three for repo-type sites and one for citations).
    
 *** org-gcal
 google calendar integration
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
   (setq org-gcal-client-id
         (auth-source-pick-first-password :host "org-gcal"
                                          :user "dania.moriazi01@khu.ac.kr^id"))
@@ -2218,7 +2292,7 @@ google calendar integration
 
 *** org-babel languages
 because literate programming.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
   (defun do-org-confirm-babel-evaluations (lang body)
     (not (or (string= lang "python")
              (string= lang "calc"))))
@@ -2227,7 +2301,7 @@ because literate programming.
 #+end_src
 
 *** org-projectile
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-org.el" 
   (use-package org-project-capture
     :ensure t
     :defer t
@@ -2439,7 +2513,7 @@ we load slack and also configure our channels and all that.
 *** Parse message metadata
 I also want to receive slack notifications on emacs.
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-misc.el"
   ;; parse message metadata
   (defun slack/parse-message-loc (title)
     (concat "#" (string-trim (nth 1 (split-string title "#")))))
@@ -2509,7 +2583,7 @@ I also want to receive slack notifications on emacs.
 #+end_src
 
 the chad-dest thing to do is send messages to slack from emacs
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-misc.el"
   ;; first we convert org-mode to mrkdwn (markdown flavour used by slack)
   (defun my/org-to-slack-md ()
     (interactive)
@@ -2561,11 +2635,10 @@ the chad-dest thing to do is send messages to slack from emacs
         (zotra-add-entry url))))
 #+end_src
 ** dashboard + some customisation
-#+PROPERTY: header-args:emacs-lisp :tangle "lisp/lazemacs-theme.el"
 I like to use dashboard with org-agenda. also, I like to sort out my daily tasks in a =daily.org= file.
 
 so first and foremost, because I am chronically lazy, I like my =daily.org= to start up already with the day's entry. that said, I like to configure a time that triggers the start of a new entry.
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-theme.el"
   (defun my/convert-time (&optional DATE TIME ZONE)
     (encode-time
      (parse-time-string
@@ -2579,7 +2652,7 @@ so first and foremost, because I am chronically lazy, I like my =daily.org= to s
 #+end_src
 
 now for our =daily.org=
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-theme.el"
   (defun my/goto-or-create-timestamp-header ()
     (interactive)
     (with-current-buffer
@@ -2616,7 +2689,7 @@ now for our =daily.org=
 #+end_src
 
 then for org-agenda:
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-theme.el"
   (defun my/open-org-agenda ()
     (interactive)
     (split-window-right)
@@ -2630,7 +2703,7 @@ then for org-agenda:
 #+end_src
 
 and then dashboard:
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle "lisp/lazemacs-theme.el"
   (defun my/window-setup ()
     (interactive)
     (if (and (fboundp 'server-running-p) 
@@ -2670,10 +2743,6 @@ and then dashboard:
 
 #+begin_src emacs-lisp :tangle "lisp/lazemacs-comp.el"
   (provide 'lazemacs-comp)
-#+end_src
-
-#+begin_src emacs-lisp :tangle "lisp/lazemacs-prelude.el"
-  (provide 'lazemacs-prelude)
 #+end_src
 
 #+begin_src emacs-lisp :tangle "lisp/lazemacs-style.el"

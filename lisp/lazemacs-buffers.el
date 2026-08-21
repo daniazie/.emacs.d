@@ -1,3 +1,5 @@
+;;; lazemacs-buffers.el --- buffer management -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package ibuffer
   :ensure nil
   :defer t
@@ -52,6 +54,19 @@
   :custom
   (bufferfile-verbose nil)
   (bufferfile-delete-switch-to 'parent-directory))
+
+(use-package avy
+:ensure t
+:defer t
+:hook
+(elpaca-init-hook . avy-setup-default)
+:bind
+(("C-:" . avy-goto-char)
+("C-'" . avy-goto-char-2)
+("M-g f" . avy-goto-line)
+("M-g w" . avy-goto-word-1)
+("M-g e" . avy-goto-word-0)
+("C-c C-j" . avy-resume)))
 
 (use-package golden-ratio
   :ensure t    

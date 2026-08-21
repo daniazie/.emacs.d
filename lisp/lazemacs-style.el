@@ -1,3 +1,5 @@
+;;; lazemacs-style.el --- on aesthetics -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package doom-themes
   :ensure t
   :defer t

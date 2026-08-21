@@ -1,3 +1,5 @@
+;;; lazemacs-bib.el --- bibliography management -*- lexical-binding: t; no-byte-compile: t; -*-
+
 (use-package citar
   :ensure t
   :defer t
